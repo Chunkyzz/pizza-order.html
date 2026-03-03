@@ -126,6 +126,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .pcheck-item.done .pcn{color:var(--green);}
 .pcheck-tick{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.6rem;flex-shrink:0;transition:all 0.18s;}
 .pcheck-item.done .pcheck-tick{background:var(--green);border-color:var(--green);color:#0a0a0f;}
+.date-group-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-bottom:none;margin-top:14px;border-radius:var(--r) var(--r) 0 0;}
+.date-group-header:first-child{margin-top:0;}
+.date-group-header.today{background:rgba(255,107,43,0.08);border-color:rgba(255,107,43,0.25);}
+.dgh-label{font-size:0.78rem;font-weight:700;color:var(--text);}
+.date-group-header.today .dgh-label{color:var(--orange);}
+.dgh-meta{font-size:0.68rem;color:var(--muted);}
 .empty{text-align:center;padding:44px 20px;color:var(--muted);}
 .empty-emoji{font-size:2.4rem;margin-bottom:8px;}
 .loading{text-align:center;padding:36px;color:var(--muted);font-size:0.84rem;}
@@ -258,10 +264,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="chip" onclick="setFilter('delivered',this)">✅ נמסר <span class="chip-c" id="cnt-delivered">0</span></button>
         <button class="chip" onclick="setFilter('cancelled',this)">❌ בוטל <span class="chip-c" id="cnt-cancelled">0</span></button>
       </div>
-      <div class="table-wrap">
-        <div class="t-head"><div>#</div><div>לקוח</div><div>פיצות</div><div>שעה</div><div>סכום</div><div>תשלום</div><div>סטטוס ופעולות</div></div>
-        <div id="orders-list"><div class="loading">⏳ טוען...</div></div>
-      </div>
+      <div id="orders-list"><div class="loading">⏳ טוען...</div></div>
     </div>
   </div>
 
@@ -384,16 +387,25 @@ function getTodayLabel(){
   return 'יום '+ns[d.getDay()]+', '+d.getDate()+' '+d.toLocaleDateString('he-IL',{month:'short'});
 }
 
+// Sort date labels by proximity to today
+function sortDateLabels(labels){
+  const upcoming=buildDays().map(d=>d.label);
+  const ordered=[];
+  upcoming.forEach(l=>{if(labels.includes(l))ordered.push(l);});
+  labels.forEach(l=>{if(!ordered.includes(l))ordered.push(l);});
+  return ordered;
+}
+
 // ══ REFRESH ══
 async function refresh(){
   try{
     const [orders,bDays,bSlots]=await Promise.all([
-      sbGet('/rest/v1/pizza_orders?select=*&order=created_at.desc'),
+      sbGet('/rest/v1/pizza_orders?select=*&order=time.asc'),
       sbGet('/rest/v1/blocked_days?select=date_label'),
       sbGet('/rest/v1/blocked_slots?select=time,max_orders'),
     ]);
     allOrders=orders;
-    todayOrders=orders.filter(o=>o.date_label===getTodayLabel());
+    todayOrders=orders; // now includes all active orders
     blockedDays=bDays.map(r=>r.date_label);
     blockedSlots=bSlots;
     if(bSlots.length>0&&bSlots[0].max_orders) globalMax=bSlots[0].max_orders;
@@ -403,16 +415,18 @@ async function refresh(){
   }catch(e){toast('❌ שגיאת טעינה: '+e.message);}
 }
 
-// ══ TODAY ORDERS ══
+// ══ ORDERS ══
 function updateStats(orders){
-  document.getElementById('s-total').textContent=orders.length;
+  const todayL=getTodayLabel();
+  const todayO=orders.filter(o=>o.date_label===todayL);
+  document.getElementById('s-total').textContent=todayO.length;
   const pend=orders.filter(o=>o.status==='pending_payment'||o.status==='new').length;
   document.getElementById('s-pending').textContent=pend;
   const nb=document.getElementById('new-badge');
   if(pend>0){nb.style.display='inline';nb.textContent=pend;}else nb.style.display='none';
   document.getElementById('s-active').textContent=orders.filter(o=>['payment_confirmed','preparing','out_for_delivery'].includes(o.status)).length;
-  document.getElementById('s-done').textContent=orders.filter(o=>o.status==='delivered').length;
-  document.getElementById('s-rev').textContent='₪'+orders.filter(o=>o.status==='delivered').reduce((a,o)=>a+(o.total||0),0);
+  document.getElementById('s-done').textContent=todayO.filter(o=>o.status==='delivered').length;
+  document.getElementById('s-rev').textContent='₪'+todayO.filter(o=>o.status==='delivered').reduce((a,o)=>a+(o.total||0),0);
   const sts=['pending_payment','new','payment_confirmed','preparing','out_for_delivery','delivered','cancelled'];
   document.getElementById('cnt-all').textContent=orders.length;
   sts.forEach(s=>{const el=document.getElementById('cnt-'+s);if(el)el.textContent=orders.filter(o=>o.status===s).length;});
@@ -420,42 +434,70 @@ function updateStats(orders){
 
 function setFilter(f,el){curFilter=f;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderOrders(f);}
 
-function renderOrders(filter){
-  updateStats(todayOrders);
-  const list=filter==='all'?todayOrders:todayOrders.filter(o=>o.status===filter);
-  const el=document.getElementById('orders-list');
-  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-emoji">📭</div><p>אין הזמנות היום</p></div>';return;}
-  el.innerHTML=list.map(o=>{
-    const urgent=o.status==='pending_payment'||o.status==='new';
-    const acts=(S_ACTIONS[o.status]||[]).map(a=>`<button class="abtn ${a.c}" onclick="event.stopPropagation();updateStatus('${o.id}','${a.s}')">${a.l}</button>`).join('');
-    const did='d'+o.id.replace(/[^a-z0-9]/gi,'');
-    const isConfirming=deleteConfirm[o.id];
-    return `<div class="t-row${urgent?' urgent':''}" onclick="togDetail('${did}')">
-      <div class="row-id">${o.id}</div>
-      <div><div class="row-name">${o.name}</div><div class="row-phone">${o.phone}</div></div>
-      <div class="row-pizzas">${o.pizza_lines||''}</div>
-      <div class="row-time">${o.time||''}</div>
-      <div class="row-amount">₪${o.total||0}</div>
-      <div><span class="ptag ${o.pay_method}">${o.pay_method==='cash'?'💵':'💳'}</span></div>
-      <div class="status-cell">
-        <span class="sbadge s-${o.status}"><span class="sd"></span>${S_LABEL[o.status]||o.status}</span>
-        <div class="action-btns">
-          ${acts}
-          <button class="abtn ab-delete${isConfirming?' confirming':''}" onclick="event.stopPropagation();deleteOrder('${o.id}')">${isConfirming?'⚠️ בטוח?':'🗑️'}</button>
-        </div>
+function renderOrderRow(o){
+  const urgent=o.status==='pending_payment'||o.status==='new';
+  const acts=(S_ACTIONS[o.status]||[]).map(a=>`<button class="abtn ${a.c}" onclick="event.stopPropagation();updateStatus('${o.id}','${a.s}')">${a.l}</button>`).join('');
+  const did='d'+o.id.replace(/[^a-z0-9]/gi,'');
+  const isConfirming=deleteConfirm[o.id];
+  return `<div class="t-row${urgent?' urgent':''}" onclick="togDetail('${did}')">
+    <div class="row-id">${o.id}</div>
+    <div><div class="row-name">${o.name}</div><div class="row-phone">${o.phone}</div></div>
+    <div class="row-pizzas">${o.pizza_lines||''}</div>
+    <div class="row-time">${o.time||''}</div>
+    <div class="row-amount">₪${o.total||0}</div>
+    <div><span class="ptag ${o.pay_method}">${o.pay_method==='cash'?'💵':'💳'}</span></div>
+    <div class="status-cell">
+      <span class="sbadge s-${o.status}"><span class="sd"></span>${S_LABEL[o.status]||o.status}</span>
+      <div class="action-btns">
+        ${acts}
+        <button class="abtn ab-delete${isConfirming?' confirming':''}" onclick="event.stopPropagation();deleteOrder('${o.id}')">${isConfirming?'⚠️ בטוח?':'🗑️'}</button>
       </div>
     </div>
-    <div class="t-detail" id="${did}">
-      <div class="detail-info">🏠 <span class="detail-addr">${o.address||''}</span> · 📅 ${o.date_label||''} ${o.time||''} · 📞 ${o.phone||''} · ${o.pay_method==='cash'?'💵 מזומן':'💳 PayBox'} ₪${o.total||0}</div>
-      <div class="pizza-checklist" id="pcl-${did}">${buildPizzaChecklist(o)}</div>
-    </div>`;
+  </div>
+  <div class="t-detail" id="${did}">
+    <div class="detail-info">🏠 <span class="detail-addr">${o.address||''}</span> · 📅 ${o.date_label||''} ${o.time||''} · 📞 ${o.phone||''} · ${o.pay_method==='cash'?'💵 מזומן':'💳 PayBox'} ₪${o.total||0}</div>
+    <div class="pizza-checklist" id="pcl-${did}">${buildPizzaChecklist(o)}</div>
+  </div>`;
+}
+
+function renderOrders(filter){
+  updateStats(allOrders);
+  const list=filter==='all'?allOrders:allOrders.filter(o=>o.status===filter);
+  const el=document.getElementById('orders-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-emoji">📭</div><p>אין הזמנות</p></div>';return;}
+
+  const todayL=getTodayLabel();
+  // Group by date
+  const groups={};
+  list.forEach(o=>{
+    const d=o.date_label||'—';
+    if(!groups[d]) groups[d]=[];
+    groups[d].push(o);
+  });
+  const sortedDates=sortDateLabels(Object.keys(groups));
+
+  el.innerHTML=sortedDates.map(date=>{
+    const isToday=date===todayL;
+    const cnt=groups[date].length;
+    const rev=groups[date].filter(o=>o.status==='delivered').reduce((a,o)=>a+(o.total||0),0);
+    return `
+      <div style="margin-bottom:18px">
+        <div class="date-group-header${isToday?' today':''}">
+          <span class="dgh-label">${isToday?'📅 היום — ':''} ${date}</span>
+          <span class="dgh-meta">${cnt} הזמנות${rev>0?' · ₪'+rev+' נמסר':''}</span>
+        </div>
+        <div class="table-wrap" style="border-radius:0 0 var(--r) var(--r)">
+          <div class="t-head"><div>#</div><div>לקוח</div><div>פיצות</div><div>שעה</div><div>סכום</div><div>תשלום</div><div>סטטוס ופעולות</div></div>
+          ${groups[date].map(renderOrderRow).join('')}
+        </div>
+      </div>`;
   }).join('');
 }
 
 async function updateStatus(id,newStatus){
   try{
     await sbPatch(`/rest/v1/pizza_orders?id=eq.${encodeURIComponent(id)}`,{status:newStatus});
-    const o=todayOrders.find(x=>x.id===id);if(o)o.status=newStatus;
+    const o=allOrders.find(x=>x.id===id);if(o)o.status=newStatus;
     renderOrders(curFilter);toast('עודכן → '+(S_LABEL[newStatus]||newStatus));
   }catch(e){toast('❌ שגיאה: '+e.message);}
 }
@@ -469,8 +511,8 @@ async function deleteOrder(id){
   }
   try{
     await sbDelete(`/rest/v1/pizza_orders?id=eq.${encodeURIComponent(id)}`);
-    todayOrders=todayOrders.filter(o=>o.id!==id);
     allOrders=allOrders.filter(o=>o.id!==id);
+    todayOrders=allOrders;
     delete deleteConfirm[id];
     renderOrders(curFilter);
     toast('🗑️ הזמנה נמחקה');
