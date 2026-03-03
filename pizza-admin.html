@@ -611,8 +611,12 @@ function buildDays(){
 function allSlots(){const s=[];for(let h=18;h<=21;h++)for(let m=0;m<60;m+=10)s.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);s.push('22:00');return s;}
 
 function renderSchedule(){
+  // Count only upcoming/today orders per slot
+  const upcomingDays = new Set(buildDays().map(d=>d.label));
   const slotCount={};
-  allOrders.filter(o=>o.status!=='cancelled').forEach(o=>{slotCount[o.time]=(slotCount[o.time]||0)+1;});
+  allOrders.filter(o=>o.status!=='cancelled' && upcomingDays.has(o.date_label)).forEach(o=>{
+    slotCount[o.time]=(slotCount[o.time]||0)+1;
+  });
   document.getElementById('cal-grid').innerHTML=buildDays().map(d=>{
     const isB=blockedDays.includes(d.label);
     return `<div class="cal-day${isB?' blocked':''}" onclick="toggleDay('${d.label.replace(/'/g,"\\'")}')">
