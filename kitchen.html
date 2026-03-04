@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔥 מטבח זמני</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#f5f0e8;
+  --surface:#ffffff;
+  --border:#ddd5c0;
+  --fire:#e8706a;
+  --fire2:#f5c518;
+  --green:#22c55e;
+  --red:#ef4444;
+  --text:#2d2a24;
+  --muted:#8a8070;
+  --done:#f0f7f0;
+}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* Flame bg */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 600px 300px at 50% 100%, rgba(232,112,106,0.06) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* Header */
+.kds-header{
+  background:rgba(245,197,24,0.98);
+  backdrop-filter:blur(20px);
+  border-bottom:2px solid var(--border);
+  padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.kds-logo{font-size:1.3rem;font-weight:900;color:var(--fire);}
+.kds-logo span{color:var(--text);}
+.kds-clock{font-size:1.6rem;font-weight:900;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:2px;}
+.kds-status{display:flex;gap:12px;align-items:center;}
+.kds-badge{background:rgba(255,107,26,0.15);border:1px solid rgba(255,107,26,0.3);border-radius:20px;padding:4px 12px;font-size:0.78rem;font-weight:700;color:var(--fire);}
+.kds-badge.empty{background:rgba(160,128,96,0.1);border-color:rgba(160,128,96,0.2);color:var(--muted);}
+
+/* Main grid */
+.kds-main{padding:16px;max-width:1200px;margin:0 auto;position:relative;z-index:1;}
+
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:60vh;gap:16px;color:var(--muted);
+}
+.empty-state .e-icon{font-size:5rem;opacity:0.4;}
+.empty-state p{font-size:1rem;font-weight:700;opacity:0.6;}
+
+/* Order ticket */
+.tickets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+
+.ticket{
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  animation:slideIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  position:relative;
+}
+@keyframes slideIn{from{opacity:0;transform:scale(0.85) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+
+.ticket-header{
+  background:linear-gradient(135deg,rgba(245,197,24,0.2),rgba(232,112,106,0.08));
+  border-bottom:1px solid var(--border);
+  padding:12px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.ticket-id{font-size:0.72rem;font-weight:700;color:var(--fire2);letter-spacing:1px;}
+.ticket-time{font-size:0.7rem;color:var(--muted);}
+.ticket-name{font-size:0.9rem;font-weight:900;color:var(--text);}
+.ticket-info{font-size:0.7rem;color:var(--muted);margin-top:2px;}
+
+.ticket-body{padding:12px 14px;}
+
+/* Pizza tiles */
+.pizza-tiles{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+
+.pizza-tile{
+  background:rgba(232,112,106,0.06);
+  border:2px solid rgba(255,107,26,0.3);
+  border-radius:12px;
+  padding:10px 8px;
+  min-width:80px;
+  flex:1;
+  text-align:center;
+  cursor:pointer;
+  transition:all 0.2s;
+  position:relative;
+  user-select:none;
+}
+.pizza-tile:active{transform:scale(0.93);}
+.pizza-tile.done{
+  background:rgba(34,197,94,0.08);
+  border-color:rgba(34,197,94,0.3);
+  opacity:0.6;
+}
+.pizza-tile.done .pt-emoji{filter:grayscale(0.6);}
+.pizza-tile.done .pt-name{text-decoration:line-through;color:var(--muted);}
+.pizza-tile.done::after{
+  content:'✓';
+  position:absolute;top:4px;right:6px;
+  font-size:0.8rem;color:var(--green);font-weight:900;
+}
+.pt-emoji{font-size:1.6rem;display:block;margin-bottom:4px;}
+.pt-name{font-size:0.65rem;font-weight:700;color:var(--text);line-height:1.2;}
+.pt-tops{font-size:0.58rem;color:var(--muted);margin-top:3px;line-height:1.3;}
+
+/* Progress bar */
+.ticket-progress{
+  height:4px;
+  background:var(--border);
+  border-radius:2px;
+  overflow:hidden;
+  margin-bottom:10px;
+}
+.ticket-progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--fire),var(--fire2));
+  border-radius:2px;
+  transition:width 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.ticket-footer{
+  border-top:1px solid var(--border);
+  padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:0.72rem;color:var(--muted);
+}
+.tf-count{font-weight:700;}
+.tf-count.all-done{color:var(--green);}
+
+/* Done animation */
+.ticket.all-done-anim{
+  border-color:rgba(34,197,94,0.5);
+  animation:doneFlash 0.5s ease;
+}
+@keyframes doneFlash{
+  0%{box-shadow:0 0 0 0 rgba(34,197,94,0.5);}
+  50%{box-shadow:0 0 0 12px rgba(34,197,94,0);}
+  100%{box-shadow:none;}
+}
+
+/* Ping dot */
+.ping-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--green);
+  animation:ping 1.5s ease infinite;
+  display:inline-block;
+}
+@keyframes ping{
+  0%,100%{opacity:1;transform:scale(1);}
+  50%{opacity:0.4;transform:scale(1.4);}
+}
+</style>
+</head>
+<body>
+
+<header class="kds-header">
+  <div>
+    <div class="kds-logo">🔥 <span>מטבח</span> זמני</div>
+  </div>
+  <div class="kds-clock" id="kds-clock">--:--:--</div>
+  <div class="kds-status">
+    <span class="ping-dot" id="conn-dot" style="background:var(--muted)"></span>
+    <div class="kds-badge empty" id="active-badge">0 פעילות</div>
+  </div>
+</header>
+
+<main class="kds-main">
+  <div class="empty-state" id="empty-state">
+    <div class="e-icon">🍕</div>
+    <p>ממתין להזמנות...</p>
+    <p style="font-size:0.8rem;opacity:0.5">כשתלחץ Fire על הזמנה — היא תופיע כאן</p>
+  </div>
+  <div class="tickets-grid" id="tickets-grid"></div>
+</main>
+
+<script>
+const SB_URL = 'https://qgmyaxxzebwcatetbngs.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbXlheHh6ZWJ3Y2F0ZXRibmdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjAzNzgsImV4cCI6MjA4NzMzNjM3OH0.fjayqe6M6YgrLALJcAZIPAqgzoTVfSZkGbc4nSqmxHI';
+const HDR = {'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'};
+
+const PIZZA_INFO = {
+  margherita:{name:'מרגריטה',emoji:'🍕'},
+  pesto:{name:'פסטו',emoji:'🌿'},
+  polenta:{name:'פולנטה',emoji:'🌽'},
+  selek:{name:'סלק',emoji:'🥗'},
+};
+
+const TOPPING_NAMES = {olives:'זיתים',corn:'תירס',onion:'בצל',mushrooms:'פטריות'};
+
+// Clock
+function updateClock(){
+  const now = new Date();
+  document.getElementById('kds-clock').textContent =
+    now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// State
+let orders = {};
+
+async function fetchFiringOrders() {
+  const r = await fetch(`${SB_URL}/rest/v1/pizza_orders?status=eq.preparing&select=*&order=created_at.asc`,{headers:HDR});
+  return r.json();
+}
+
+async function loadOrders() {
+  try {
+    const data = await fetchFiringOrders();
+    orders = {};
+    data.forEach(o => orders[o.id] = o);
+    renderAll();
+    document.getElementById('conn-dot').style.background = 'var(--green)';
+  } catch(e) {
+    document.getElementById('conn-dot').style.background = 'var(--red)';
+  }
+}
+
+function renderAll() {
+  const grid = document.getElementById('tickets-grid');
+  const empty = document.getElementById('empty-state');
+  const keys = Object.keys(orders);
+  
+  document.getElementById('active-badge').textContent = keys.length + ' פעילות';
+  document.getElementById('active-badge').className = 'kds-badge' + (keys.length===0?' empty':'');
+
+  if(keys.length === 0){
+    empty.style.display='flex';
+    grid.innerHTML='';
+    return;
+  }
+  empty.style.display='none';
+  grid.innerHTML = keys.map(id => renderTicket(orders[id])).join('');
+}
+
+function renderTicket(o) {
+  const pizzas = o.pizzas || {};
+  const prepared = o.items_prepared || {};
+  
+  // Build all pizza tiles
+  const tiles = [];
+  Object.entries(pizzas).forEach(([pid, data]) => {
+    const qty = typeof data === 'object' ? data.qty : data;
+    const toppings = typeof data === 'object' ? data.toppings : [];
+    const info = PIZZA_INFO[pid] || {name:pid, emoji:'🍕'};
+    for(let i=0;i<qty;i++){
+      const key = pid+'_'+i;
+      const isDone = !!prepared[key];
+      const tops = toppings && toppings[i] && toppings[i].length > 0
+        ? toppings[i].map(t=>TOPPING_NAMES[t]||t).join(', ')
+        : '';
+      tiles.push({key, pid, idx:i, isDone, info, tops, totalQty:qty});
+    }
+  });
+
+  const doneCount = tiles.filter(t=>t.isDone).length;
+  const total = tiles.length;
+  const pct = total > 0 ? Math.round(doneCount/total*100) : 0;
+  const allDone = doneCount === total && total > 0;
+
+  const timeStr = o.created_at ? new Date(o.created_at).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : '';
+
+  return `<div class="ticket${allDone?' all-done-anim':''}" id="ticket-${o.id}">
+    <div class="ticket-header">
+      <div>
+        <div class="ticket-id">${o.id}</div>
+        <div class="ticket-name">${o.name||''}</div>
+        <div class="ticket-info">${o.time||''} · ${o.address||''}</div>
+      </div>
+      <div class="ticket-time">${timeStr}</div>
+    </div>
+    <div class="ticket-body">
+      <div class="ticket-progress">
+        <div class="ticket-progress-fill" style="width:${pct}%"></div>
+      </div>
+      <div class="pizza-tiles">
+        ${tiles.map(t=>`
+          <div class="pizza-tile${t.isDone?' done':''}" onclick="togglePizza('${o.id}','${t.key}')">
+            <span class="pt-emoji">${t.info.emoji}</span>
+            <div class="pt-name">${t.info.name}${t.totalQty>1?' '+(t.idx+1):''}</div>
+            ${t.tops?`<div class="pt-tops">${t.tops}</div>`:''}
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="ticket-footer">
+      <span class="tf-count${allDone?' all-done':''}">
+        ${allDone ? '✅ הכל מוכן!' : `${doneCount}/${total} מוכן`}
+      </span>
+      <span>${o.pay_method==='cash'?'💵 מזומן':'📱 אפליקציה'}</span>
+    </div>
+  </div>`;
+}
+
+async function togglePizza(orderId, key) {
+  const o = orders[orderId];
+  if(!o) return;
+  if(!o.items_prepared) o.items_prepared = {};
+  o.items_prepared[key] = !o.items_prepared[key];
+
+  // Check if all done
+  const pizzas = o.pizzas || {};
+  const allKeys = [];
+  Object.entries(pizzas).forEach(([pid,data])=>{
+    const qty = typeof data==='object' ? data.qty : data;
+    for(let i=0;i<qty;i++) allKeys.push(pid+'_'+i);
+  });
+  const allDone = allKeys.every(k=>o.items_prepared[k]);
+
+  // Update Supabase
+  const newStatus = allDone ? 'out_for_delivery' : 'preparing';
+  await fetch(`${SB_URL}/rest/v1/pizza_orders?id=eq.${encodeURIComponent(orderId)}`,{
+    method:'PATCH',
+    headers:{...HDR,'Prefer':'return=minimal'},
+    body:JSON.stringify({items_prepared:o.items_prepared, status:newStatus})
+  });
+
+  if(allDone) {
+    // Brief done flash then remove
+    renderAll();
+    setTimeout(()=>{
+      delete orders[orderId];
+      renderAll();
+    }, 1800);
+  } else {
+    renderAll();
+  }
+}
+
+// Real-time polling every 5 seconds
+loadOrders();
+setInterval(loadOrders, 5000);
+</script>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;">kitchen v1.0</div>
+</body>
+</html>
