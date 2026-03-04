@@ -60,9 +60,9 @@ input::placeholder{color:#3a3830;}
 
 /* Pizza grid */
 .pizza-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.pizza-grid.marg-selected{display:flex;gap:12px;align-items:flex-start;direction:ltr;}
-.marg-col{flex:1;min-width:0;direction:rtl;}
-.others-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;direction:rtl;}
+.pizza-grid.marg-selected{display:flex;gap:12px;align-items:flex-start;}
+.marg-col{flex:1;min-width:0;}
+.others-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;}
 .pizza-card{background:var(--surface2);border:2px solid var(--border);border-radius:16px;overflow:hidden;transition:all 0.2s;position:relative;cursor:pointer;}
 .pizza-card.has-items{border-color:var(--orange);box-shadow:0 3px 14px rgba(255,107,43,0.15);}
 .pizza-card.expanded{grid-column:1/-1;cursor:default;}
@@ -488,18 +488,13 @@ function renderPizzas() {
     }
   }
 
-  if(margHasItems) {
-    const marg = PIZZAS.find(p=>p.hasToppings);
-    const others = PIZZAS.filter(p=>!p.hasToppings);
-    grid.className = 'pizza-grid marg-selected';
-    grid.innerHTML = `
-      <div class="marg-col">${makeCard(marg)}</div>
-      <div class="others-col">${others.map(p=>makeCard(p)).join('')}</div>
-    `;
-  } else {
-    grid.className = 'pizza-grid';
-    grid.innerHTML = PIZZAS.map(p=>makeCard(p)).join('');
-  }
+  grid.className = 'pizza-grid marg-selected';
+  const marg = PIZZAS.find(p=>p.hasToppings);
+  const others = PIZZAS.filter(p=>!p.hasToppings);
+  grid.innerHTML = `
+    <div class="marg-col">${makeCard(marg)}</div>
+    <div class="others-col">${others.map(p=>makeCard(p)).join('')}</div>
+  `;
 
   // Click handlers
   PIZZAS.forEach(p => {
@@ -706,5 +701,6 @@ function step1(){const name=document.getElementById('f-name').value.trim();const
 function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
+  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(255,255,255,0.15);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.0</div>
 </body>
 </html>
