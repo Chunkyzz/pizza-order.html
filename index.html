@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍕 זמני — מערכות</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.logo{font-size:2rem;font-weight:900;margin-bottom:6px;text-align:center;}
+.logo em{font-style:normal;color:#e8706a;}
+.sub{font-size:0.85rem;color:#8a8070;margin-bottom:32px;text-align:center;}
+.cards{display:flex;flex-direction:column;gap:14px;width:100%;max-width:380px;}
+.card{
+  background:#fff;border:1.5px solid #ddd5c0;border-radius:16px;
+  padding:18px 20px;display:flex;align-items:center;gap:16px;
+  text-decoration:none;color:#2d2a24;
+  transition:all 0.18s;box-shadow:0 2px 8px rgba(0,0,0,0.04);
+}
+.card:active{transform:scale(0.97);}
+.card:hover{border-color:#e8706a;box-shadow:0 4px 16px rgba(232,112,106,0.15);}
+.card-icon{font-size:2rem;flex-shrink:0;}
+.card-text{}
+.card-title{font-size:1rem;font-weight:900;}
+.card-desc{font-size:0.75rem;color:#8a8070;margin-top:2px;}
+.card-arrow{margin-right:auto;color:#ddd5c0;font-size:1.1rem;}
+
+.card.order .card-title{color:#e8706a;}
+.card.admin .card-title{color:#d97706;}
+.card.kitchen .card-title{color:#16a34a;}
+
+.divider{width:100%;max-width:380px;text-align:center;font-size:0.7rem;color:#8a8070;margin:8px 0;}
+</style>
+</head>
+<body>
+
+<div class="logo">🍕 פיצה <em>זמני</em></div>
+<div class="sub">Pop up איטלקי · בחר מערכת</div>
+
+<div class="cards">
+
+  <a class="card order" href="pizza-order.html">
+    <div class="card-icon">🛵</div>
+    <div class="card-text">
+      <div class="card-title">הזמנת פיצה</div>
+      <div class="card-desc">ממשק לקוח — הזמנה, תשלום, משלוח</div>
+    </div>
+    <div class="card-arrow">←</div>
+  </a>
+
+  <div class="divider">— צוות —</div>
+
+  <a class="card admin" href="pizza-admin.html">
+    <div class="card-icon">📋</div>
+    <div class="card-text">
+      <div class="card-title">ניהול הזמנות</div>
+      <div class="card-desc">אדמין — סטטוסים, היסטוריה, Fire</div>
+    </div>
+    <div class="card-arrow">←</div>
+  </a>
+
+  <a class="card kitchen" href="kitchen.html">
+    <div class="card-icon">🔥</div>
+    <div class="card-text">
+      <div class="card-title">מסך מטבח</div>
+      <div class="card-desc">טאבלט שף — פיצות בהכנה, סימון מוכן</div>
+    </div>
+    <div class="card-arrow">←</div>
+  </a>
+
+</div>
+
+<div style="margin-top:32px;font-size:0.6rem;color:rgba(0,0,0,0.2);">זמני systems v1.0</div>
+</body>
+</html>
