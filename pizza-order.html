@@ -60,9 +60,9 @@ input::placeholder{color:#3a3830;}
 
 /* Pizza grid */
 .pizza-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.pizza-grid.marg-selected{display:flex;gap:12px;align-items:flex-start;}
-.marg-col{flex:1;min-width:0;}
-.others-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;}
+.pizza-grid.marg-selected{display:flex;gap:12px;align-items:flex-start;direction:ltr;}
+.marg-col{flex:1;min-width:0;direction:rtl;}
+.others-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;direction:rtl;}
 .pizza-card{background:var(--surface2);border:2px solid var(--border);border-radius:16px;overflow:hidden;transition:all 0.2s;position:relative;cursor:pointer;}
 .pizza-card.has-items{border-color:var(--orange);box-shadow:0 3px 14px rgba(255,107,43,0.15);}
 .pizza-card.expanded{grid-column:1/-1;cursor:default;}
@@ -493,8 +493,8 @@ function renderPizzas() {
     const others = PIZZAS.filter(p=>!p.hasToppings);
     grid.className = 'pizza-grid marg-selected';
     grid.innerHTML = `
-      <div class="others-col">${others.map(p=>makeCard(p)).join('')}</div>
       <div class="marg-col">${makeCard(marg)}</div>
+      <div class="others-col">${others.map(p=>makeCard(p)).join('')}</div>
     `;
   } else {
     grid.className = 'pizza-grid';
