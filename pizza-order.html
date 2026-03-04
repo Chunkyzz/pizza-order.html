@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>🍕 פיצה on demand</title>
+<title>פיצה זמני 🍕</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f0e0c;--surface:#1a1915;--surface2:#22211c;--border:#2e2d26;--orange:#ff6b2b;--orange2:#ff9a3c;--cream:#f5e6c8;--green:#4ecb71;--red:#ff4455;--text:#f0ead8;--muted:#7a7060;--r:14px;}
+:root{--bg:#f5f0e8;--surface:#ffffff;--surface2:#f0ebe0;--border:#ddd5c0;--orange:#e8706a;--orange2:#f5c518;--cream:#f5c518;--green:#4ecb71;--red:#e85555;--text:#2d2a24;--muted:#8a8070;--teal:#7dc4c0;--r:14px;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 500px 400px at 70% 10%,rgba(255,107,43,0.07) 0%,transparent 70%),radial-gradient(ellipse 400px 500px at 10% 90%,rgba(255,154,60,0.05) 0%,transparent 70%);pointer-events:none;z-index:0;}
-.top-nav{position:sticky;top:0;z-index:200;background:rgba(15,14,12,0.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 20px;}
+.top-nav{position:sticky;top:0;z-index:200;background:rgba(245,197,24,0.98);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 20px;}
 .top-nav-inner{max-width:640px;margin:0 auto;display:flex;align-items:center;justify-content:center;height:52px;}
-.nav-logo{font-size:1.15rem;font-weight:900;color:var(--orange);}
-.prog-bar{background:rgba(15,14,12,0.9);backdrop-filter:blur(10px);padding:0 20px;border-bottom:1px solid var(--border);}
+.nav-logo{font-size:1.15rem;font-weight:900;color:var(--text);}
+.prog-bar{background:rgba(245,197,24,0.95);backdrop-filter:blur(10px);padding:0 20px;border-bottom:1px solid var(--border);}
 .prog-inner{max-width:640px;margin:0 auto;display:flex;align-items:center;padding:10px 0;}
 .prog-step{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;}
 .prog-circle{width:29px;height:29px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.74rem;font-weight:700;color:var(--muted);background:var(--bg);transition:all 0.3s;}
@@ -37,7 +37,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sec-t{font-size:0.63rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
 .field{margin-bottom:13px;}
 label{display:block;font-size:0.63rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:5px;}
-input[type=text],input[type=tel]{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:13px;font-family:'Heebo',sans-serif;font-size:1rem;color:var(--text);outline:none;transition:all 0.2s;}
+input[type=text],input[type=tel]{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:13px;font-family:'Heebo',sans-serif;font-size:1rem;color:var(--text);outline:none;transition:all 0.2s;}
 input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,107,43,0.1);}
 input::placeholder{color:#3a3830;}
 .days-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
@@ -97,7 +97,7 @@ input::placeholder{color:#3a3830;}
 .top-done{margin-top:9px;width:100%;padding:9px;border:none;border-radius:9px;background:var(--orange);color:white;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;}
 .top-note{font-size:0.63rem;color:var(--muted);margin-top:5px;text-align:center;}
 .margherita-panels{padding:0 10px 12px;}
-.margherita-pizza-slot{background:rgba(255,107,43,0.04);border:1px solid rgba(255,107,43,0.15);border-radius:10px;padding:10px;margin-bottom:8px;}
+.margherita-pizza-slot{background:rgba(255,107,43,0.04);border:1px solid rgba(125,196,192,0.4);border-radius:10px;padding:10px;margin-bottom:8px;}
 .mps-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .mps-num{font-size:0.78rem;font-weight:700;color:var(--orange);}
 .remove-pizza-btn{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:0.72rem;padding:3px 8px;cursor:pointer;font-family:'Heebo',sans-serif;}
@@ -144,31 +144,31 @@ input::placeholder{color:#3a3830;}
 .btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
 .btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);margin-top:8px;}
 .btn-ghost:hover{border-color:var(--orange);color:var(--text);}
-.cart-strip{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(26,25,21,0.97);backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:10px 16px;display:none;}
+.cart-strip{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(245,197,24,0.98);backdrop-filter:blur(16px);border-top:1px solid rgba(0,0,0,0.1);padding:10px 16px;display:none;}
 .cart-strip.show{display:block;}
 .cart-inner{max-width:640px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;}
-.cprev{font-size:0.78rem;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ctot{font-size:0.98rem;font-weight:900;color:var(--orange);white-space:nowrap;}
+.cprev{font-size:0.78rem;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ctot{font-size:0.98rem;font-weight:900;color:var(--text);white-space:nowrap;}
 .cnext{padding:9px 16px;border:none;border-radius:9px;background:var(--orange);color:white;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;font-size:0.76rem;font-weight:700;}
 .b-app{background:rgba(59,130,246,0.15);color:#3b82f6;}
-.b-cash{background:rgba(245,230,200,0.12);color:var(--cream);}
+.b-cash{background:rgba(232,112,106,0.12);color:var(--orange);}
 .loading-slots{color:var(--muted);font-size:0.82rem;padding:16px;text-align:center;grid-column:1/-1;}
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--surface2);border:1px solid var(--orange);border-radius:10px;padding:10px 17px;font-size:0.83rem;font-weight:600;color:var(--orange);z-index:999;transition:transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275);white-space:nowrap;box-shadow:0 7px 22px rgba(0,0,0,0.5);}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(60px);background:#fff;border:1px solid var(--orange);border-radius:10px;padding:10px 17px;font-size:0.83rem;font-weight:600;color:var(--text);z-index:999;transition:transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275);white-space:nowrap;box-shadow:0 7px 22px rgba(0,0,0,0.35);}
 .toast.show{transform:translateX(-50%) translateY(0);}
 @media(max-width:480px){.days-grid{grid-template-columns:repeat(3,1fr);}.times-grid{grid-template-columns:repeat(3,1fr);}}
 
 /* Inline margherita slots */
 .marg-slots{padding:0 10px 12px;}
-.marg-slot{background:rgba(255,107,43,0.05);border:1px solid rgba(255,107,43,0.15);border-radius:12px;padding:10px;margin-bottom:8px;position:relative;}
+.marg-slot{background:rgba(125,196,192,0.12);border:1px solid rgba(125,196,192,0.4);border-radius:12px;padding:10px;margin-bottom:8px;position:relative;}
 .marg-slot-x{position:absolute;top:-10px;left:-10px;width:26px;height:26px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);color:var(--muted);font-size:0.72rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;transition:all 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.3);}
 .marg-slot-x:hover{border-color:var(--red);color:var(--red);}
-.marg-add-btn{width:100%;padding:11px;border:2px dashed rgba(255,107,43,0.3);border-radius:10px;background:transparent;color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.marg-add-btn{width:100%;padding:11px;border:2px dashed rgba(125,196,192,0.5);border-radius:10px;background:transparent;color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.15s;}
 .marg-add-btn:hover{border-color:var(--orange);background:rgba(255,107,43,0.06);}
 </style>
 </head>
 <body>
-<nav class="top-nav"><div class="top-nav-inner"><div class="nav-logo">🍕 פיצה on demand</div></div></nav>
+<nav class="top-nav"><div class="top-nav-inner"><div class="nav-logo">🍕 פיצה זמני | Pop up איטלקי</div></div></nav>
 <div class="prog-bar">
   <div class="prog-inner">
     <div class="prog-step active" id="pi1"><div class="prog-circle">1</div><div class="prog-label">פרטים</div></div>
@@ -266,7 +266,7 @@ input::placeholder{color:#3a3830;}
           <div class="pay-app-logo">PayBox</div>
         </div>
         <div class="amt-big"><span>₪</span><span id="app-amount"></span></div>
-        <div style="background:rgba(255,107,43,0.05);border:1px solid rgba(255,107,43,0.15);border-radius:11px;padding:12px;margin-bottom:12px;text-align:center;">
+        <div style="background:rgba(125,196,192,0.12);border:1px solid rgba(125,196,192,0.4);border-radius:11px;padding:12px;margin-bottom:12px;text-align:center;">
           <div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">לאחר התשלום — לחץ אישור ⬇️</div>
         </div>
         <button class="btn btn-primary" id="btn-app-confirm" onclick="finalConfirm('app')">✅ שילמתי — אישור הזמנה</button>
@@ -701,6 +701,6 @@ function step1(){const name=document.getElementById('f-name').value.trim();const
 function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
-  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(255,255,255,0.15);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.0</div>
+  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.3</div>
 </body>
 </html>
