@@ -183,17 +183,57 @@ input::placeholder{color:#3a3830;}
   </div>
 </div>
 
-<!-- STEP 1: Details -->
+<!-- STEP 1: Phone -->
 <div class="panel active" id="panel-1">
   <div class="wrap">
     <div class="hero"><span class="pizza-float">🍕</span><h1>פיצה טרייה<br>עד <em>הבית</em></h1><p>מלא פרטים — אנחנו מגיעים</p></div>
-    <div class="card">
-      <div class="sec-t">פרטי משלוח</div>
-      <div class="field"><label>שם מלא</label><input type="text" id="f-name" placeholder="ישראל ישראלי" autocomplete="name"/></div>
-      <div class="field"><label>טלפון</label><input type="tel" id="f-phone" placeholder="050-0000000" autocomplete="tel"/></div>
-      <div class="field" style="margin-bottom:0"><label>כתובת</label><input type="text" id="f-address" placeholder="רחוב, מספר, עיר" autocomplete="street-address"/></div>
+
+    <!-- Phone entry -->
+    <div id="s1-phone">
+      <div class="card">
+        <div class="sec-t">מספר טלפון</div>
+        <div class="field" style="margin-bottom:0">
+          <label>טלפון</label>
+          <input type="tel" id="f-phone" placeholder="050-0000000" autocomplete="tel"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="step1Phone()">המשך →</button>
     </div>
-    <button class="btn btn-primary" onclick="step1()">המשך →</button>
+
+    <!-- Registration (new user) -->
+    <div id="s1-register" style="display:none">
+      <div class="card">
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-size:1.6rem;margin-bottom:6px">👋</div>
+          <div style="font-weight:800;font-size:1rem">נראה שאתה חדש אצלנו!</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">מלא פרטים פעם אחת — בפעם הבאה יתמלאו אוטומטית</div>
+        </div>
+        <div class="sec-t">פרטי משלוח</div>
+        <div class="field"><label>שם מלא</label><input type="text" id="f-name" placeholder="ישראל ישראלי" autocomplete="name"/></div>
+        <div class="field" style="margin-bottom:0"><label>כתובת</label><input type="text" id="f-address" placeholder="רחוב, מספר, עיר" autocomplete="street-address"/></div>
+      </div>
+      <button class="btn btn-primary" onclick="step1Register()">הצטרף והמשך →</button>
+      <button class="btn btn-ghost" style="margin-top:8px" onclick="backToPhone()">← שנה מספר</button>
+    </div>
+
+    <!-- Returning user -->
+    <div id="s1-returning" style="display:none">
+      <div class="card">
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-size:1.6rem;margin-bottom:6px">🎉</div>
+          <div style="font-weight:800;font-size:1rem" id="s1-welcome"></div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">מצאנו את הפרטים שלך</div>
+        </div>
+        <div class="sec-t">פרטי משלוח</div>
+        <div class="sum-row"><span class="sk">שם</span><span class="sv" id="s1-ret-name"></span></div>
+        <div class="sum-row"><span class="sk">טלפון</span><span class="sv" dir="ltr" id="s1-ret-phone"></span></div>
+        <div class="sum-row" style="border:none"><span class="sk">כתובת</span><span class="sv" id="s1-ret-address"></span></div>
+      </div>
+      <button class="btn btn-primary" onclick="step1Confirm()">אשר והמשך →</button>
+      <button class="btn btn-ghost" style="margin-top:8px" onclick="backToPhone()">← שנה מספר</button>
+    </div>
+
+    <div id="s1-loading" style="display:none;text-align:center;padding:30px;color:var(--muted)">⏳ בודק...</div>
   </div>
 </div>
 
@@ -237,6 +277,14 @@ input::placeholder{color:#3a3830;}
         <span style="font-size:0.78rem;color:var(--muted)">סה״כ</span>
         <span style="font-size:1.2rem;font-weight:900;color:var(--orange)" id="total-disp"></span>
       </div>
+    </div>
+    <div class="card" id="coupon-card">
+      <div class="sec-t">קוד קופון</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="coupon-input" placeholder="הזן קוד קופון" style="flex:1;text-align:right;letter-spacing:1px;" oninput="this.value=this.value.toUpperCase()">
+        <button class="btn btn-primary" style="padding:12px 16px;white-space:nowrap" onclick="applyCoupon()">החל</button>
+      </div>
+      <div id="coupon-status" style="display:none;margin-top:8px;font-size:0.8rem;font-weight:700;text-align:center;padding:8px;border-radius:8px;"></div>
     </div>
     <div class="card">
       <div class="sec-t">שיטת תשלום</div>
@@ -301,6 +349,8 @@ input::placeholder{color:#3a3830;}
 
 <script>
 const SB_URL = 'https://qgmyaxxzebwcatetbngs.supabase.co';
+const COUPON_CODE = 'ZMANI1';
+const COUPON_DISCOUNT = 40;
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbXlheHh6ZWJ3Y2F0ZXRibmdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjAzNzgsImV4cCI6MjA4NzMzNjM3OH0.fjayqe6M6YgrLALJcAZIPAqgzoTVfSZkGbc4nSqmxHI';
 const HDR = {'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'};
 
@@ -336,7 +386,7 @@ const PIZZAS = [
 
 // O = order state
 // pizzas: {margherita: {qty:2, toppings:[['olives'],['corn','onion']] } }
-const O = {name:'',phone:'',address:'',date:null,dateLabel:'',time:'',pizzas:{},payMethod:''};
+const O = {name:'',phone:'',address:'',date:null,dateLabel:'',time:'',pizzas:{},payMethod:'',couponApplied:false,couponDiscount:0,customerId:null};
 let curStep = 1;
 let expandedPizza = null; // which pizza toppings panel is open
 
@@ -592,7 +642,15 @@ function toppingsCost(){
   });
   return cost;
 }
-function totPrice(){return totQty()*PRICE+toppingsCost();}
+function totPrice(){
+  let t=0;
+  PIZZAS.filter(p=>getQty(p.id)>0).forEach(p=>{
+    t+=getQty(p.id)*PRICE;
+    if(O.pizzas[p.id]?.toppings) O.pizzas[p.id].toppings.forEach(tops=>t+=tops.length*TOPPING_PRICE);
+  });
+  if(O.couponApplied) t=Math.max(0,t-O.couponDiscount);
+  return t;
+}
 
 function updCart() {
   const q=totQty();
@@ -638,6 +696,9 @@ function renderSummary() {
   document.getElementById('total-disp').textContent='₪'+tot;
   document.getElementById('cash-amount').textContent=tot;
   document.getElementById('app-amount').textContent=tot;
+  O.couponApplied=false;O.couponDiscount=0;
+  const ci=document.getElementById('coupon-input');if(ci){ci.value='';ci.disabled=false;}
+  const cs=document.getElementById('coupon-status');if(cs)cs.style.display='none';
   O.payMethod='';
   ['opt-cash','opt-app'].forEach(id=>document.getElementById(id).classList.remove('sel'));
   ['sec-cash','sec-app'].forEach(id=>document.getElementById(id).style.display='none');
@@ -652,6 +713,58 @@ function selPay(m){
   document.getElementById('opt-app').classList.toggle('sel',m==='app');
   document.getElementById('sec-cash').style.display=m==='cash'?'block':'none';
   document.getElementById('sec-app').style.display=m==='app'?'block':'none';
+}
+
+async function applyCoupon() {
+  const code = document.getElementById('coupon-input').value.trim().toUpperCase();
+  const statusEl = document.getElementById('coupon-status');
+  statusEl.style.display = 'block';
+
+  if(O.couponApplied) {
+    statusEl.style.background = 'rgba(232,112,106,0.1)';
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠️ קופון כבר הופעל';
+    return;
+  }
+  if(code !== COUPON_CODE) {
+    statusEl.style.background = 'rgba(232,112,106,0.1)';
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '❌ קוד קופון שגוי';
+    return;
+  }
+  // Check if phone already used
+  statusEl.style.background = 'rgba(125,196,192,0.1)';
+  statusEl.style.color = 'var(--teal)';
+  statusEl.textContent = '⏳ בודק...';
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/coupon_uses?phone=eq.${encodeURIComponent(O.phone)}&select=id`,{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const rows = await res.json();
+    if(rows.length > 0) {
+      statusEl.style.background = 'rgba(232,112,106,0.1)';
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '❌ הקופון כבר שומש במספר זה';
+      return;
+    }
+    // Valid!
+    O.couponApplied = true;
+    O.couponDiscount = COUPON_DISCOUNT;
+    statusEl.style.background = 'rgba(78,203,113,0.1)';
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = '🎉 קופון הופעל! הנחה של ₪40';
+    document.getElementById('coupon-input').disabled = true;
+    // Update totals display
+    const tot = totPrice();
+    document.getElementById('total-disp').textContent = '₪'+tot;
+    document.getElementById('cash-amount').textContent = tot;
+    document.getElementById('app-amount').textContent = tot;
+    updCart();
+  } catch(e) {
+    statusEl.style.background = 'rgba(232,112,106,0.1)';
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '❌ שגיאה — נסה שוב';
+  }
 }
 
 async function finalConfirm(method) {
@@ -670,8 +783,19 @@ async function finalConfirm(method) {
       id,name:O.name,phone:O.phone,address:O.address,
       date_label:O.dateLabel,time:O.time,pizza_lines:pizzaLines,
       pizzas:pizzasData,total:totPrice(),pay_method:method,
-      status:'new'
+      status:'new',coupon_used:O.couponApplied?COUPON_CODE:null
     });
+    if(O.couponApplied) {
+      await sbPost('/rest/v1/coupon_uses',{phone:O.phone,coupon_code:COUPON_CODE});
+    }
+    // Update orders_count
+    if(O.customerId) {
+      await fetch(`${SB_URL}/rest/v1/customers?id=eq.${O.customerId}`,{
+        method:'PATCH',
+        headers:{...HDR,'Prefer':'return=minimal'},
+        body:JSON.stringify({orders_count: (await sbGet(`/rest/v1/customers?id=eq.${O.customerId}&select=orders_count`))[0]?.orders_count+1||1})
+      });
+    }
     showStatus('success','✅ ההזמנה נרשמה!');
     setTimeout(()=>showSuccess({id,method}),700);
   } catch(e) {
@@ -697,10 +821,64 @@ function showSuccess(ord) {
 
 function updProg(n){for(let i=1;i<=5;i++){const el=document.getElementById('pi'+i);if(!el)continue;el.classList.remove('active','done');if(i<n)el.classList.add('done');if(i===n)el.classList.add('active');}for(let i=1;i<=4;i++)document.getElementById('pl'+i)?.classList.toggle('done',i<n);}
 function goTo(n){document.getElementById('panel-'+curStep)?.classList.remove('active');document.getElementById('panel-'+n)?.classList.add('active');updProg(Math.min(n,5));curStep=n;window.scrollTo({top:0,behavior:'smooth'});if(n===2)renderDays();if(n===3)renderTimes();if(n===4)renderPizzas();if(n===5)renderSummary();}
-function step1(){const name=document.getElementById('f-name').value.trim();const phone=document.getElementById('f-phone').value.trim();const address=document.getElementById('f-address').value.trim();if(!name||!phone||!address){toast('⚠️ נא למלא את כל השדות');return;}O.name=name;O.phone=phone;O.address=address;goTo(2);}
-function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
+async function step1Phone() {
+  const phone = document.getElementById('f-phone').value.trim();
+  if(!phone || phone.length < 9) { toast('⚠️ נא להזין מספר טלפון תקין'); return; }
+  O.phone = phone;
+  document.getElementById('s1-phone').style.display = 'none';
+  document.getElementById('s1-loading').style.display = 'block';
+  try {
+    const rows = await sbGet(`/rest/v1/customers?phone=eq.${encodeURIComponent(phone)}&select=*`);
+    document.getElementById('s1-loading').style.display = 'none';
+    if(rows && rows.length > 0) {
+      // Returning customer
+      const c = rows[0];
+      O.name = c.name; O.address = c.address; O.customerId = c.id;
+      document.getElementById('s1-welcome').textContent = 'שלום ' + c.name + '!';
+      document.getElementById('s1-ret-name').textContent = c.name;
+      document.getElementById('s1-ret-phone').textContent = phone;
+      document.getElementById('s1-ret-address').textContent = c.address;
+      document.getElementById('s1-returning').style.display = 'block';
+    } else {
+      // New customer
+      document.getElementById('s1-register').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('s1-loading').style.display = 'none';
+    document.getElementById('s1-phone').style.display = 'block';
+    toast('❌ שגיאה — נסה שוב');
+  }
+}
+
+async function step1Register() {
+  const name = document.getElementById('f-name').value.trim();
+  const address = document.getElementById('f-address').value.trim();
+  if(!name || !address) { toast('⚠️ נא למלא את כל השדות'); return; }
+  O.name = name; O.address = address;
+  try {
+    const res = await sbPost('/rest/v1/customers', {phone:O.phone, name, address});
+    if(res && res[0]) O.customerId = res[0].id;
+  } catch(e) {
+    // might already exist, continue anyway
+  }
+  goTo(2);
+}
+
+function step1Confirm() {
+  goTo(2);
+}
+
+function backToPhone() {
+  document.getElementById('s1-register').style.display = 'none';
+  document.getElementById('s1-returning').style.display = 'none';
+  document.getElementById('s1-loading').style.display = 'none';
+  document.getElementById('s1-phone').style.display = 'block';
+}
+
+function step1() { step1Phone(); }
+function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.couponApplied=false;O.couponDiscount=0;O.customerId=null;document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
-  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.3</div>
+  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.5</div>
 </body>
 </html>
