@@ -227,7 +227,19 @@ input::placeholder{color:#3a3830;}
         <div class="sec-t">פרטי משלוח</div>
         <div class="sum-row"><span class="sk">שם</span><span class="sv" id="s1-ret-name"></span></div>
         <div class="sum-row"><span class="sk">טלפון</span><span class="sv" dir="ltr" id="s1-ret-phone"></span></div>
-        <div class="sum-row" style="border:none"><span class="sk">כתובת</span><span class="sv" id="s1-ret-address"></span></div>
+        <div class="sum-row" style="border:none;align-items:flex-start">
+          <span class="sk">כתובת</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:1">
+            <span class="sv" id="s1-ret-address"></span>
+            <button onclick="toggleAddressEdit()" style="background:none;border:none;font-size:0.72rem;color:var(--orange);cursor:pointer;font-family:'Heebo',sans-serif;font-weight:700;" id="s1-edit-btn">✏️ שנה כתובת למשלוח זה</button>
+          </div>
+        </div>
+        <div id="s1-address-edit" style="display:none;margin-top:8px">
+          <div class="field" style="margin-bottom:0">
+            <label>כתובת למשלוח זה</label>
+            <input type="text" id="f-address-override" placeholder="רחוב, מספר, עיר" autocomplete="street-address"/>
+          </div>
+        </div>
       </div>
       <button class="btn btn-primary" onclick="step1Confirm()">אשר והמשך →</button>
       <button class="btn btn-ghost" style="margin-top:8px" onclick="backToPhone()">← שנה מספר</button>
@@ -864,7 +876,18 @@ async function step1Register() {
   goTo(2);
 }
 
+function toggleAddressEdit() {
+  const el = document.getElementById('s1-address-edit');
+  const btn = document.getElementById('s1-edit-btn');
+  const open = el.style.display === 'none';
+  el.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '✕ ביטול' : '✏️ שנה כתובת למשלוח זה';
+  if(open) document.getElementById('f-address-override').value = O.address;
+}
+
 function step1Confirm() {
+  const override = document.getElementById('f-address-override')?.value.trim();
+  if(override) O.address = override;
   goTo(2);
 }
 
@@ -879,6 +902,6 @@ function step1() { step1Phone(); }
 function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.couponApplied=false;O.couponDiscount=0;O.customerId=null;document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
-  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.5</div>
+  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.6</div>
 </body>
 </html>
