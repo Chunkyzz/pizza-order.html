@@ -168,6 +168,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* ══ SCHEDULE ══ */
 .schedule-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.hsel{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'Heebo',sans-serif;font-size:0.88rem;color:var(--text);outline:none;}
 @media(max-width:700px){.schedule-grid{grid-template-columns:1fr;}}
 .sch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .sch-card-head{padding:14px 16px;background:var(--surface2);border-bottom:1px solid var(--border);}
@@ -179,6 +180,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .cal-day:hover{border-color:var(--orange);}
 .cal-day.blocked{background:rgba(255,68,85,0.07);border-color:rgba(255,68,85,0.35);}
 .cal-day.blocked .cal-day-num{color:var(--red);}
+.cal-day.sat{opacity:0.25;cursor:default;}
+.cal-day.past{opacity:0.4;}
 .cal-blocked-tag{position:absolute;top:2px;right:2px;font-size:0.44rem;font-weight:700;background:var(--red);color:white;padding:1px 3px;border-radius:3px;}
 .cal-day-name{font-size:0.57rem;color:var(--muted);margin-bottom:2px;}
 .cal-day-num{font-size:1.1rem;font-weight:900;line-height:1;}
@@ -284,75 +287,80 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <!-- SCHEDULE -->
   <div class="view" id="view-schedule">
     <div class="main">
-      <!-- Default hours card -->
-      <div class="sch-card" style="margin-bottom:18px">
-        <div class="sch-card-head">
-          <div class="sch-card-title">🕐 שעות פעילות ברירת מחדל</div>
-          <div class="sch-card-sub">חל על כל הימים אלא אם כן יש עקיפה</div>
-        </div>
-        <div style="padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">מ:</label>
-            <select id="def-start" style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'Heebo',sans-serif;font-size:0.9rem;color:var(--text);" onchange="saveDefaultHours()">
-              <option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option>
-              <option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option>
-              <option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option>
-              <option value="17">17:00</option><option value="18" selected>18:00</option><option value="19">19:00</option>
-              <option value="20">20:00</option><option value="21">21:00</option>
-            </select>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">עד:</label>
-            <select id="def-end" style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'Heebo',sans-serif;font-size:0.9rem;color:var(--text);" onchange="saveDefaultHours()">
-              <option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option>
-              <option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option>
-              <option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option>
-              <option value="21">21:00</option><option value="22" selected>22:00</option><option value="23">23:00</option>
-            </select>
-          </div>
+
+      <!-- Default hours -->
+      <div class="sch-card" style="margin-bottom:14px">
+        <div class="sch-card-head"><div class="sch-card-title">🕐 שעות ברירת מחדל</div><div class="sch-card-sub">חל על כל הימים אלא אם כן יש עקיפה</div></div>
+        <div style="padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;"><label style="font-size:0.75rem;font-weight:700;color:var(--muted);">מ:</label>
+            <select id="def-start" class="hsel" onchange="saveDefaultHours()">
+              <option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option><option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18" selected>18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option>
+            </select></div>
+          <div style="display:flex;align-items:center;gap:6px;"><label style="font-size:0.75rem;font-weight:700;color:var(--muted);">עד:</label>
+            <select id="def-end" class="hsel" onchange="saveDefaultHours()">
+              <option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option><option value="22" selected>22:00</option><option value="23">23:00</option>
+            </select></div>
           <div id="def-hours-status" style="font-size:0.75rem;color:var(--green);display:none;">✅ נשמר</div>
         </div>
       </div>
 
-      <!-- Day override hours -->
-      <div class="sch-card" style="margin-bottom:18px" id="day-override-card" style="display:none">
-        <div class="sch-card-head" style="display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div class="sch-card-title">⚡ שעות מיוחדות ליום</div>
-            <div class="sch-card-sub" id="override-day-label">בחר יום בלוח</div>
+      <!-- Special hours override -->
+      <div class="sch-card" style="margin-bottom:14px">
+        <div class="sch-card-head"><div class="sch-card-title">⚡ שעות מיוחדות לתקופה</div><div class="sch-card-sub">החל שעות שונות על טווח תאריכים או חודש שלם</div></div>
+        <div style="padding:12px 16px;">
+          <!-- Tabs -->
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button id="ov-tab-range" onclick="setOvTab('range')" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--orange);background:var(--orange);color:white;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">טווח תאריכים</button>
+            <button id="ov-tab-month" onclick="setOvTab('month')" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">חודש שלם</button>
           </div>
-          <button onclick="clearDayOverride()" id="btn-clear-override" style="display:none;background:none;border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:0.72rem;font-family:'Heebo',sans-serif;cursor:pointer;color:var(--muted)">✕ נקה</button>
-        </div>
-        <div style="padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">מ:</label>
-            <select id="ov-start" style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'Heebo',sans-serif;font-size:0.9rem;color:var(--text);">
-              <option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option>
-              <option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option>
-              <option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option>
-              <option value="17">17:00</option><option value="18" selected>18:00</option><option value="19">19:00</option>
-              <option value="20">20:00</option><option value="21">21:00</option>
+          <!-- Range picker -->
+          <div id="ov-range" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:6px;"><label style="font-size:0.72rem;color:var(--muted);font-weight:700;">מתאריך:</label><input type="date" id="ov-from" class="hsel" style="padding:7px 8px;"/></div>
+            <div style="display:flex;align-items:center;gap:6px;"><label style="font-size:0.72rem;color:var(--muted);font-weight:700;">עד תאריך:</label><input type="date" id="ov-to" class="hsel" style="padding:7px 8px;"/></div>
+          </div>
+          <!-- Month picker -->
+          <div id="ov-month" style="display:none;margin-bottom:10px;">
+            <select id="ov-month-sel" class="hsel">
+              <option value="0">ינואר</option><option value="1">פברואר</option><option value="2">מרץ</option><option value="3">אפריל</option><option value="4">מאי</option><option value="5">יוני</option><option value="6">יולי</option><option value="7">אוגוסט</option><option value="8">ספטמבר</option><option value="9">אוקטובר</option><option value="10">נובמבר</option><option value="11">דצמבר</option>
             </select>
+            <select id="ov-year-sel" class="hsel" style="margin-right:8px;"></select>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">עד:</label>
-            <select id="ov-end" style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'Heebo',sans-serif;font-size:0.9rem;color:var(--text);">
-              <option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option>
-              <option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option>
-              <option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option>
-              <option value="21">21:00</option><option value="22" selected>22:00</option><option value="23">23:00</option>
-            </select>
+          <!-- Hours -->
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;"><label style="font-size:0.72rem;color:var(--muted);font-weight:700;">מ:</label>
+              <select id="ov-start" class="hsel"><option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option><option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18" selected>18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option></select></div>
+            <div style="display:flex;align-items:center;gap:6px;"><label style="font-size:0.72rem;color:var(--muted);font-weight:700;">עד:</label>
+              <select id="ov-end" class="hsel"><option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option><option value="22" selected>22:00</option><option value="23">23:00</option></select></div>
+            <button onclick="applyOverride()" style="padding:8px 18px;background:var(--orange);border:none;border-radius:8px;color:white;font-family:'Heebo',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;">החל</button>
+            <button onclick="clearOverride()" style="padding:8px 14px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.78rem;cursor:pointer;">נקה תקופה</button>
           </div>
-          <button onclick="saveDayOverride()" style="padding:8px 16px;background:var(--orange);border:none;border-radius:8px;color:white;font-family:'Heebo',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;">שמור</button>
+          <div id="ov-status" style="margin-top:8px;font-size:0.78rem;display:none;"></div>
         </div>
       </div>
 
+      <!-- Calendar + slots -->
       <div class="schedule-grid">
         <div class="sch-card">
-          <div class="sch-card-head"><div class="sch-card-title">📅 חסימת ימים</div><div class="sch-card-sub">לחץ לחסום · לחיצה כפולה לשעות מיוחדות</div></div>
+          <div class="sch-card-head" style="display:flex;align-items:center;justify-content:space-between;">
+            <div><div class="sch-card-title">📅 חסימת ימים</div><div class="sch-card-sub">לחץ לחסום / לפתוח</div></div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button onclick="prevMonth()" style="background:none;border:1px solid var(--border);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:0.9rem;">‹</button>
+              <span id="cal-month-label" style="font-size:0.82rem;font-weight:700;min-width:80px;text-align:center;"></span>
+              <button onclick="nextMonth()" style="background:none;border:1px solid var(--border);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:0.9rem;">›</button>
+            </div>
+          </div>
           <div class="sch-body">
-            <div class="cal-grid" id="cal-grid"><div class="loading">⏳</div></div>
-            <div class="cal-legend"><span><span class="cal-legend-dot" style="background:var(--border)"></span>פתוח</span><span><span class="cal-legend-dot" style="background:var(--red)"></span>חסום</span></div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;">
+              <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">א׳</div>
+              <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">ב׳</div>
+              <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">ג׳</div>
+              <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">ד׳</div>
+              <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">ה׳</div>
+              <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">ו׳</div>
+              <div style="text-align:center;font-size:0.6rem;color:rgba(0,0,0,0.15);padding:4px 0;">ש׳</div>
+            </div>
+            <div class="cal-grid" id="cal-grid" style="grid-template-columns:repeat(7,1fr)"><div class="loading">⏳</div></div>
+            <div class="cal-legend" style="margin-top:8px;"><span><span class="cal-legend-dot" style="background:var(--border)"></span>פתוח</span><span><span class="cal-legend-dot" style="background:var(--red)"></span>חסום</span><span><span class="cal-legend-dot" style="background:rgba(37,99,235,0.4)"></span>שעות מיוחדות</span></div>
           </div>
         </div>
         <div class="sch-card">
@@ -761,12 +769,34 @@ function renderHistory(orders){
 }
 
 // ══ SCHEDULE ══
-function buildDays(){
+let calViewDate = new Date(); // current month being viewed
+calViewDate.setDate(1);
+
+function getMonthDays(year, month) {
   const ns=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
-  const days=[];let d=new Date();
-  while(days.length<60){if(d.getDay()!==6){days.push({dayName:'יום '+ns[d.getDay()],num:d.getDate(),month:d.toLocaleDateString('he-IL',{month:'short'}),label:'יום '+ns[d.getDay()]+', '+d.getDate()+' '+d.toLocaleDateString('he-IL',{month:'short'})});}d.setDate(d.getDate()+1);}
+  const days=[];
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month+1, 0);
+  for(let d=new Date(first); d<=last; d.setDate(d.getDate()+1)) {
+    const dd = new Date(d);
+    days.push({
+      date: dd,
+      dayOfWeek: dd.getDay(),
+      num: dd.getDate(),
+      month: dd.toLocaleDateString('he-IL',{month:'short'}),
+      dayName: 'יום '+ns[dd.getDay()],
+      label: 'יום '+ns[dd.getDay()]+', '+dd.getDate()+' '+dd.toLocaleDateString('he-IL',{month:'short'})
+    });
+  }
   return days;
 }
+
+function buildDays(){
+  return getMonthDays(calViewDate.getFullYear(), calViewDate.getMonth());
+}
+
+function prevMonth(){ calViewDate.setMonth(calViewDate.getMonth()-1); renderSchedule(); }
+function nextMonth(){ calViewDate.setMonth(calViewDate.getMonth()+1); renderSchedule(); }
 function allSlots(startH=18,endH=22){const s=[];for(let h=startH;h<endH;h++)for(let m=0;m<60;m+=10)s.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);s.push(`${String(endH).padStart(2,'0')}:00`);return s;}
 
 function renderSchedule(){
@@ -818,7 +848,97 @@ async function saveGlobalMax(){
   }catch(e){toast('❌ '+e.message);}
 }
 
-let _selectedOverrideDay = null;
+let _ovTab = 'range';
+function setOvTab(tab) {
+  _ovTab = tab;
+  document.getElementById('ov-range').style.display = tab==='range' ? 'flex' : 'none';
+  document.getElementById('ov-month').style.display = tab==='month' ? 'block' : 'none';
+  document.getElementById('ov-tab-range').style.background = tab==='range' ? 'var(--orange)' : 'transparent';
+  document.getElementById('ov-tab-range').style.color = tab==='range' ? 'white' : 'var(--muted)';
+  document.getElementById('ov-tab-range').style.borderColor = tab==='range' ? 'var(--orange)' : 'var(--border)';
+  document.getElementById('ov-tab-month').style.background = tab==='month' ? 'var(--orange)' : 'transparent';
+  document.getElementById('ov-tab-month').style.color = tab==='month' ? 'white' : 'var(--muted)';
+  document.getElementById('ov-tab-month').style.borderColor = tab==='month' ? 'var(--orange)' : 'var(--border)';
+}
+
+// Init year selector
+(function(){
+  const yr = document.getElementById('ov-year-sel');
+  if(!yr) return;
+  const now = new Date().getFullYear();
+  for(let y=now; y<=now+2; y++) { const o=document.createElement('option'); o.value=y; o.textContent=y; yr.appendChild(o); }
+  document.getElementById('ov-month-sel').value = new Date().getMonth();
+})();
+
+function getDatesInRange(from, to) {
+  const ns=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+  const dates=[]; let d=new Date(from);
+  while(d<=to) {
+    if(d.getDay()!==6) {
+      dates.push('יום '+ns[d.getDay()]+', '+d.getDate()+' '+d.toLocaleDateString('he-IL',{month:'short'}));
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return dates;
+}
+
+async function applyOverride() {
+  const s=parseInt(document.getElementById('ov-start').value);
+  const e=parseInt(document.getElementById('ov-end').value);
+  if(s>=e){toast('⚠️ שעת סיום חייבת להיות אחרי ההתחלה');return;}
+  const st=document.getElementById('ov-status');
+  st.style.display='block'; st.style.color='var(--muted)'; st.textContent='⏳ שומר...';
+
+  let labels=[];
+  if(_ovTab==='range') {
+    const from=document.getElementById('ov-from').value;
+    const to=document.getElementById('ov-to').value;
+    if(!from||!to){toast('⚠️ בחר תאריכי התחלה וסיום');return;}
+    labels=getDatesInRange(new Date(from), new Date(to));
+  } else {
+    const mo=parseInt(document.getElementById('ov-month-sel').value);
+    const yr=parseInt(document.getElementById('ov-year-sel').value);
+    const days=getMonthDays(yr,mo);
+    labels=days.map(d=>d.label);
+  }
+
+  try {
+    for(const label of labels) {
+      const rows=await sbGet(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(label)}&select=id`);
+      if(rows&&rows.length>0) await sbPatch(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(label)}`,{start_hour:s,end_hour:e});
+      else await sbPost('/rest/v1/hours_settings',{date_label:label,start_hour:s,end_hour:e});
+      if(!window._hourOverrides) window._hourOverrides={};
+      window._hourOverrides[label]={start_hour:s,end_hour:e};
+    }
+    st.style.color='var(--green)'; st.textContent=`✅ עודכן ל-${labels.length} ימים`;
+    renderSchedule();
+  } catch(err){st.style.color='var(--red)';st.textContent='❌ שגיאה';}
+}
+
+async function clearOverride() {
+  const st=document.getElementById('ov-status');
+  st.style.display='block'; st.style.color='var(--muted)'; st.textContent='⏳ מנקה...';
+
+  let labels=[];
+  if(_ovTab==='range') {
+    const from=document.getElementById('ov-from').value;
+    const to=document.getElementById('ov-to').value;
+    if(!from||!to){toast('⚠️ בחר תאריכים');return;}
+    labels=getDatesInRange(new Date(from), new Date(to));
+  } else {
+    const mo=parseInt(document.getElementById('ov-month-sel').value);
+    const yr=parseInt(document.getElementById('ov-year-sel').value);
+    labels=getMonthDays(yr,mo).map(d=>d.label);
+  }
+  try {
+    for(const label of labels) {
+      await sbDelete(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(label)}`);
+      if(window._hourOverrides) delete window._hourOverrides[label];
+    }
+    st.style.color='var(--orange)'; st.textContent=`🗑 נוקה ${labels.length} ימים — חוזר לברירת מחדל`;
+    renderSchedule();
+  } catch(err){st.style.color='var(--red)';st.textContent='❌ שגיאה';}
+}
 
 async function loadHoursSettings() {
   try {
@@ -847,43 +967,7 @@ async function saveDefaultHours() {
   } catch(e) { toast('❌ '+e.message); }
 }
 
-function selectDayOverride(label) {
-  _selectedOverrideDay = label;
-  document.getElementById('day-override-card').style.display = 'block';
-  document.getElementById('override-day-label').textContent = label;
-  const ov = window._hourOverrides && window._hourOverrides[label];
-  document.getElementById('ov-start').value = ov ? ov.start_hour : document.getElementById('def-start').value;
-  document.getElementById('ov-end').value = ov ? ov.end_hour : document.getElementById('def-end').value;
-  document.getElementById('btn-clear-override').style.display = ov ? 'block' : 'none';
-}
-
-async function saveDayOverride() {
-  if(!_selectedOverrideDay) return;
-  const s = parseInt(document.getElementById('ov-start').value);
-  const e = parseInt(document.getElementById('ov-end').value);
-  if(s >= e) { toast('⚠️ שעת סיום חייבת להיות אחרי ההתחלה'); return; }
-  try {
-    const rows = await sbGet(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(_selectedOverrideDay)}&select=id`);
-    if(rows && rows.length>0) await sbPatch(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(_selectedOverrideDay)}`,{start_hour:s,end_hour:e});
-    else await sbPost('/rest/v1/hours_settings',{date_label:_selectedOverrideDay,start_hour:s,end_hour:e});
-    if(!window._hourOverrides) window._hourOverrides={};
-    window._hourOverrides[_selectedOverrideDay]={start_hour:s,end_hour:e};
-    document.getElementById('btn-clear-override').style.display='block';
-    toast('✅ שעות מיוחדות נשמרו ל'+_selectedOverrideDay);
-    renderSchedule();
-  } catch(e) { toast('❌ '+e.message); }
-}
-
-async function clearDayOverride() {
-  if(!_selectedOverrideDay) return;
-  try {
-    await sbDelete(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(_selectedOverrideDay)}`);
-    if(window._hourOverrides) delete window._hourOverrides[_selectedOverrideDay];
-    document.getElementById('btn-clear-override').style.display='none';
-    toast('✅ עקיפה הוסרה — חוזר לברירת מחדל');
-    renderSchedule();
-  } catch(e) { toast('❌ '+e.message); }
-}
+// day override replaced by range/month override
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 

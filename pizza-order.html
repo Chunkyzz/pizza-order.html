@@ -40,7 +40,15 @@ label{display:block;font-size:0.63rem;font-weight:700;text-transform:uppercase;l
 input[type=text],input[type=tel]{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:13px;font-family:'Heebo',sans-serif;font-size:1rem;color:var(--text);outline:none;transition:all 0.2s;}
 input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,107,43,0.1);}
 input::placeholder{color:#3a3830;}
-.days-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.day-card{min-height:48px;padding:6px 2px;}
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.month-nav-btn{background:none;border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;}
+.month-nav-label{font-size:0.9rem;font-weight:700;}
+.day-header{text-align:center;font-size:0.58rem;color:var(--muted);padding:3px 0;}
+.day-card.sat{opacity:0.2;cursor:default;pointer-events:none;}
+.day-card.past{opacity:0.35;pointer-events:none;}
+.day-card.empty{background:none;border:none;cursor:default;}
 .day-card{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:10px 5px;text-align:center;cursor:pointer;transition:all 0.18s;position:relative;}
 .day-card:hover:not(.full){border-color:var(--orange);transform:translateY(-2px);}
 .day-card.selected{border-color:var(--orange);background:rgba(255,107,43,0.1);}
@@ -156,7 +164,7 @@ input::placeholder{color:#3a3830;}
 .loading-slots{color:var(--muted);font-size:0.82rem;padding:16px;text-align:center;grid-column:1/-1;}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(60px);background:#fff;border:1px solid var(--orange);border-radius:10px;padding:10px 17px;font-size:0.83rem;font-weight:600;color:var(--text);z-index:999;transition:transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275);white-space:nowrap;box-shadow:0 7px 22px rgba(0,0,0,0.35);}
 .toast.show{transform:translateX(-50%) translateY(0);}
-@media(max-width:480px){.days-grid{grid-template-columns:repeat(3,1fr);}.times-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:480px){.times-grid{grid-template-columns:repeat(3,1fr);}}
 
 /* Inline margherita slots */
 .marg-slots{padding:0 10px 12px;}
@@ -261,7 +269,18 @@ input::placeholder{color:#3a3830;}
 <div class="panel" id="panel-2">
   <div class="wrap">
     <div class="hero" style="padding-bottom:16px"><h1>בחר <em>תאריך</em></h1><p>ימים פנויים למשלוח</p></div>
-    <div class="card"><div class="sec-t">ימים זמינים</div><div class="days-grid" id="days-grid"><div class="loading-slots">⏳ טוען ימים...</div></div></div>
+    <div class="card">
+  <div class="sec-t">בחר תאריך</div>
+  <div class="month-nav">
+    <button class="month-nav-btn" onclick="prevMonthOrder()">‹</button>
+    <span class="month-nav-label" id="order-month-label"></span>
+    <button class="month-nav-btn" onclick="nextMonthOrder()">›</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">
+    <div class="day-header">א׳</div><div class="day-header">ב׳</div><div class="day-header">ג׳</div><div class="day-header">ד׳</div><div class="day-header">ה׳</div><div class="day-header">ו׳</div><div class="day-header" style="opacity:0.3">ש׳</div>
+  </div>
+  <div class="days-grid" id="days-grid"><div class="loading-slots">⏳ טוען ימים...</div></div>
+</div>
     <button class="btn btn-ghost" onclick="goTo(1)">← חזרה</button>
   </div>
 </div>
@@ -424,16 +443,22 @@ const O = {name:'',phone:'',address:'',date:null,dateLabel:'',time:'',pizzas:{},
 let curStep = 1;
 let expandedPizza = null; // which pizza toppings panel is open
 
-function buildDays() {
-  const ns=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
-  const days=[]; let d=new Date();
-  while(days.length<60){
-    if(d.getDay()!==6) days.push({date:new Date(d),dayName:'יום '+ns[d.getDay()],num:d.getDate(),month:d.toLocaleDateString('he-IL',{month:'short'})});
-    d.setDate(d.getDate()+1);
+const MONTH_NAMES=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const NS=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+let orderCalDate = new Date();
+orderCalDate.setDate(1);
+
+function getMonthDays(year, month) {
+  const days=[];
+  for(let d=new Date(year,month,1); d<=new Date(year,month+1,0); d.setDate(d.getDate()+1)){
+    const dd=new Date(d);
+    days.push({date:dd,dayOfWeek:dd.getDay(),num:dd.getDate(),month:dd.toLocaleDateString('he-IL',{month:'short'}),dayName:'יום '+NS[dd.getDay()],label:'יום '+NS[dd.getDay()]+', '+dd.getDate()+' '+dd.toLocaleDateString('he-IL',{month:'short'})});
   }
   return days;
 }
-window._days = buildDays();
+
+function prevMonthOrder(){ orderCalDate.setMonth(orderCalDate.getMonth()-1); renderDays(); }
+function nextMonthOrder(){ orderCalDate.setMonth(orderCalDate.getMonth()+1); renderDays(); }
 
 function allSlots(startH=18, endH=22) {
   const s=[];
@@ -444,28 +469,45 @@ function allSlots(startH=18, endH=22) {
 
 async function renderDays() {
   const grid = document.getElementById('days-grid');
-  grid.innerHTML = '<div class="loading-slots">⏳ טוען ימים...</div>';
+  grid.innerHTML = '<div class="loading-slots" style="grid-column:span 7">⏳ טוען ימים...</div>';
   let blockedDays = [];
   try {
     const data = await sbGet('/rest/v1/blocked_days?select=date_label');
     blockedDays = data.map(r => r.date_label);
   } catch(e) {}
-  grid.innerHTML = _days.map((d,i) => {
-    const label = d.dayName+', '+d.num+' '+d.month;
-    const isBlocked = blockedDays.includes(label);
-    const isSelected = O.dateLabel === label;
-    return `<div class="day-card${isBlocked?' full':''}${isSelected?' selected':''}" onclick="selDay(${i})">
-      ${isBlocked?'<div class="full-tag">מלא</div>':''}
-      <div class="day-name">${d.dayName}</div>
-      <div class="day-num">${d.num}</div>
-      <div class="day-month">${d.month}</div>
+
+  const yr=orderCalDate.getFullYear(), mo=orderCalDate.getMonth();
+  document.getElementById('order-month-label').textContent = MONTH_NAMES[mo]+' '+yr;
+  const days = getMonthDays(yr, mo);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let html = '';
+  // Empty cells offset
+  for(let i=0;i<days[0].dayOfWeek;i++) html += '<div class="day-card empty"></div>';
+
+  days.forEach(d => {
+    const isBlocked = blockedDays.includes(d.label);
+    const isSelected = O.dateLabel === d.label;
+    const isPast = d.date < today;
+    const isSat = d.dayOfWeek === 6;
+    let cls = 'day-card';
+    if(isBlocked) cls += ' full';
+    if(isSelected) cls += ' selected';
+    if(isPast) cls += ' past';
+    if(isSat) cls += ' sat';
+    const click = (isBlocked||isPast||isSat) ? '' : `onclick="selDayByLabel('${d.label.replace(/'/g,"\'")}',new Date(${d.date.getTime()}))"`;
+    html += `<div class="${cls}" ${click}>
+      ${isBlocked?'<div class="full-tag" style="font-size:0.45rem">מלא</div>':''}
+      <div class="day-num" style="font-size:1rem">${d.num}</div>
     </div>`;
-  }).join('');
+  });
+  grid.innerHTML = html;
 }
 
-function selDay(i) {
-  const d=_days[i]; O.date=d.date; O.dateLabel=d.dayName+', '+d.num+' '+d.month;
-  document.querySelectorAll('.day-card').forEach((c,j)=>c.classList.toggle('selected',j===i));
+function selDayByLabel(label, date) {
+  O.date=date; O.dateLabel=label;
+  document.querySelectorAll('.day-card').forEach(c=>c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
   setTimeout(()=>goTo(3),150);
 }
 
@@ -930,6 +972,6 @@ function step1() { step1Phone(); }
 function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.couponApplied=false;O.couponDiscount=0;O.customerId=null;document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
-  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.7</div>
+  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.8</div>
 </body>
 </html>
