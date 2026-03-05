@@ -237,6 +237,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
       <div class="topbar-right">
         <span id="new-badge" class="new-badge" style="display:none">0</span>
+        <button class="tb-btn" id="btn-toggle-open" onclick="toggleRestaurant()" style="font-weight:900;">⏳</button>
         <button class="tb-btn refresh" onclick="refresh()">🔄</button>
         <button class="tb-btn logout" onclick="logout()">יציאה</button>
       </div>
@@ -363,6 +364,59 @@ function tryLogin(){
     setTimeout(()=>e.style.display='none',3000);
   }
 }
+async function loadRestaurantStatus() {
+  try {
+    const rows = await sbGet("/rest/v1/restaurant_status?id=eq.1&select=*");
+    const isOpen = !rows || rows.length === 0 || rows[0].is_open !== false;
+    updateOpenBtn(isOpen);
+  } catch(e) { updateOpenBtn(true); }
+}
+
+function updateOpenBtn(isOpen) {
+  const btn = document.getElementById('btn-toggle-open');
+  if(!btn) return;
+  if(isOpen) {
+    btn.textContent = '🟢 פתוח';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'rgba(34,197,94,0.3)';
+  } else {
+    btn.textContent = '🔴 סגור';
+    btn.style.color = 'var(--red)';
+    btn.style.borderColor = 'rgba(220,38,38,0.3)';
+  }
+}
+
+async function toggleRestaurant() {
+  try {
+    const rows = await sbGet("/rest/v1/restaurant_status?id=eq.1&select=*");
+    const isOpen = !rows || rows.length === 0 || rows[0].is_open !== false;
+    if(isOpen) {
+      // Show close modal
+      document.getElementById('closed-overlay').style.display = 'flex';
+    } else {
+      // Reopen
+      await sbPatch('/rest/v1/restaurant_status?id=eq.1', {is_open:true, closed_message:''});
+      updateOpenBtn(true);
+      toast('🟢 המסעדה פתוחה!');
+    }
+  } catch(e) { toast('❌ שגיאה'); }
+}
+
+async function confirmClose() {
+  const msg = document.getElementById('closed-msg').value.trim();
+  try {
+    const rows = await sbGet("/rest/v1/restaurant_status?id=eq.1&select=id");
+    if(rows && rows.length > 0) {
+      await sbPatch('/rest/v1/restaurant_status?id=eq.1', {is_open:false, closed_message:msg});
+    } else {
+      await sbPost('/rest/v1/restaurant_status', {id:1, is_open:false, closed_message:msg});
+    }
+    document.getElementById('closed-overlay').style.display = 'none';
+    updateOpenBtn(false);
+    toast('🔴 המסעדה סגורה');
+  } catch(e) { toast('❌ שגיאה'); }
+}
+
 function logout(){sessionStorage.removeItem(SESSION_KEY);location.reload();}
 if(sessionStorage.getItem(SESSION_KEY)){
   document.getElementById('login-screen').style.display='none';
@@ -704,5 +758,18 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 if(sessionStorage.getItem(SESSION_KEY)) refresh();
 setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refresh();},30000);
 </script>
+
+<!-- Restaurant closed modal -->
+<div id="closed-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:24px;max-width:360px;width:90%;margin:20px;">
+    <div style="font-size:1.1rem;font-weight:900;margin-bottom:16px;text-align:center;">🔴 סגירת המסעדה</div>
+    <div class="field">
+      <label>הודעה ללקוחות (אופציונלי)</label>
+      <textarea id="closed-msg" rows="3" placeholder="לדוגמה: סגורים הערב, נחזור מחר מ-18:00" style="width:100%;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px;font-family:'Heebo',sans-serif;font-size:0.9rem;color:var(--text);resize:none;outline:none;"></textarea>
+    </div>
+    <button class="btn btn-primary" style="background:var(--red);margin-bottom:8px;" onclick="confirmClose()">🔴 סגור עכשיו</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('closed-overlay').style.display='none'">ביטול</button>
+  </div>
+</div>
 </body>
 </html>

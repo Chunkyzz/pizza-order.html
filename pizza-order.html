@@ -168,6 +168,14 @@ input::placeholder{color:#3a3830;}
 </style>
 </head>
 <body>
+<!-- Closed screen -->
+<div id="restaurant-closed" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;">
+  <div style="font-size:4rem;margin-bottom:16px;">🍕</div>
+  <div style="font-size:1.6rem;font-weight:900;margin-bottom:8px;">אנחנו סגורים כרגע</div>
+  <div id="closed-msg-display" style="font-size:0.9rem;color:var(--muted);max-width:280px;line-height:1.5;"></div>
+  <div style="margin-top:24px;font-size:0.78rem;color:var(--muted);">נשמח לראותך בפעם הבאה 🙂</div>
+</div>
+
 <nav class="top-nav"><div class="top-nav-inner"><div class="nav-logo">🍕 פיצה זמני | Pop up איטלקי</div></div></nav>
 <div class="prog-bar">
   <div class="prog-inner">
@@ -398,6 +406,20 @@ const PIZZAS = [
 
 // O = order state
 // pizzas: {margherita: {qty:2, toppings:[['olives'],['corn','onion']] } }
+// Check if restaurant is open
+async function checkRestaurantOpen() {
+  try {
+    const rows = await fetch(SB_URL+'/rest/v1/restaurant_status?id=eq.1&select=*',
+      {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json());
+    if(rows && rows.length > 0 && rows[0].is_open === false) {
+      const msg = rows[0].closed_message || '';
+      document.getElementById('closed-msg-display').textContent = msg;
+      document.getElementById('restaurant-closed').style.display = 'flex';
+    }
+  } catch(e) {}
+}
+checkRestaurantOpen();
+
 const O = {name:'',phone:'',address:'',date:null,dateLabel:'',time:'',pizzas:{},payMethod:'',couponApplied:false,couponDiscount:0,customerId:null};
 let curStep = 1;
 let expandedPizza = null; // which pizza toppings panel is open
@@ -902,6 +924,6 @@ function step1() { step1Phone(); }
 function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.couponApplied=false;O.couponDiscount=0;O.customerId=null;document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
-  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.6</div>
+  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.7</div>
 </body>
 </html>
