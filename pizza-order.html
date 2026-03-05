@@ -427,7 +427,7 @@ let expandedPizza = null; // which pizza toppings panel is open
 function buildDays() {
   const ns=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
   const days=[]; let d=new Date();
-  while(days.length<8){
+  while(days.length<60){
     if(d.getDay()!==6) days.push({date:new Date(d),dayName:'יום '+ns[d.getDay()],num:d.getDate(),month:d.toLocaleDateString('he-IL',{month:'short'})});
     d.setDate(d.getDate()+1);
   }
@@ -435,10 +435,10 @@ function buildDays() {
 }
 window._days = buildDays();
 
-function allSlots() {
+function allSlots(startH=18, endH=22) {
   const s=[];
-  for(let h=18;h<=21;h++) for(let m=0;m<60;m+=10) s.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-  s.push('22:00');
+  for(let h=startH;h<endH;h++) for(let m=0;m<60;m+=10) s.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+  s.push(`${String(endH).padStart(2,'0')}:00`);
   return s;
 }
 
@@ -472,12 +472,18 @@ function selDay(i) {
 async function renderTimes() {
   const grid = document.getElementById('times-grid');
   grid.innerHTML = '<div class="loading-slots">⏳ טוען שעות...</div>';
-  let blockedSlots=[],slotMaxMap={},ordersForDay=[];
+  let blockedSlots=[],slotMaxMap={},ordersForDay=[],startH=18,endH=22;
   try {
-    const [bSlots,dayOrders] = await Promise.all([
+    const [bSlots,dayOrders,hourRows] = await Promise.all([
       sbGet('/rest/v1/blocked_slots?select=time,max_orders'),
-      sbGet(`/rest/v1/pizza_orders?date_label=eq.${encodeURIComponent(O.dateLabel)}&status=neq.cancelled&select=time`)
+      sbGet(`/rest/v1/pizza_orders?date_label=eq.${encodeURIComponent(O.dateLabel)}&status=neq.cancelled&select=time`),
+      sbGet(`/rest/v1/hours_settings?select=*`)
     ]);
+    // Find override for this day, else default
+    const dayOverride = hourRows.find(r=>r.date_label===O.dateLabel);
+    const defaults = hourRows.find(r=>r.date_label==='default');
+    if(dayOverride){startH=dayOverride.start_hour;endH=dayOverride.end_hour;}
+    else if(defaults){startH=defaults.start_hour;endH=defaults.end_hour;}
     blockedSlots=bSlots.map(r=>r.time);
     bSlots.forEach(r=>{slotMaxMap[r.time]=r.max_orders;});
     ordersForDay=dayOrders.map(r=>r.time);
@@ -488,7 +494,7 @@ async function renderTimes() {
   const now=new Date();
   const todayLabel='יום '+['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'][now.getDay()]+', '+now.getDate()+' '+now.toLocaleDateString('he-IL',{month:'short'});
   const isToday=O.dateLabel===todayLabel;
-  grid.innerHTML=allSlots().map(t=>{
+  grid.innerHTML=allSlots(startH,endH).map(t=>{
     if(isToday){const [sh,sm]=t.split(':').map(Number);if(sh*60+sm<=now.getHours()*60+now.getMinutes())return `<div class="time-slot taken">${t}</div>`;}
     const count=slotCount[t]||0;
     const max=slotMaxMap[t]??MAX_DEFAULT;
