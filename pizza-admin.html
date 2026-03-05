@@ -825,28 +825,38 @@ function nextMonth(){ calViewDate.setMonth(calViewDate.getMonth()+1); renderSche
 function allSlots(startH=18,endH=22){const s=[];for(let h=startH;h<endH;h++)for(let m=0;m<60;m+=10)s.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);s.push(`${String(endH).padStart(2,'0')}:00`);return s;}
 
 function renderSchedule(){
-  // Count only upcoming/today orders per slot
-  const upcomingDays = new Set(buildDays().map(d=>d.label));
-  const slotCount={};
-  allOrders.filter(o=>o.status!=='cancelled' && upcomingDays.has(o.date_label)).forEach(o=>{
-    slotCount[o.time]=(slotCount[o.time]||0)+1;
-  });
-  document.getElementById('cal-grid').innerHTML=buildDays().map(d=>{
+  const monthNames=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  const yr=calViewDate.getFullYear(), mo=calViewDate.getMonth();
+  document.getElementById('cal-month-label').textContent = monthNames[mo]+' '+yr;
+  const mp=document.getElementById('sel-month-pick');
+  const yp=document.getElementById('sel-year-pick');
+  if(mp) mp.value=mo;
+  if(yp&&yp.children.length===0){const ny=new Date().getFullYear();for(let y=ny;y<=ny+2;y++){const o=document.createElement('option');o.value=y;o.textContent=y;yp.appendChild(o);}}
+  const monthDays=getMonthDays(yr,mo);
+  const grid=document.getElementById('cal-grid');
+  grid.innerHTML='';
+  for(let i=0;i<monthDays[0].dayOfWeek;i++){const e=document.createElement('div');grid.appendChild(e);}
+  monthDays.forEach(d=>{
     const isB=blockedDays.includes(d.label);
     const hasOv=window._hourOverrides&&window._hourOverrides[d.label];
-    return `<div class="cal-day${isB?' blocked':''}" onclick="toggleDay('${d.label.replace(/'/g,"\\'")}')" ondblclick="selectDayOverride('${d.label.replace(/'/g,"\\'")}')">
-      ${isB?'<div class="cal-blocked-tag">חסום</div>':''}
-      ${hasOv?'<div class="cal-blocked-tag" style="background:rgba(37,99,235,0.15);color:var(--blue);border-color:rgba(37,99,235,0.2)">שעות מיוחדות</div>':''}
-      <div class="cal-day-name">${d.dayName}</div><div class="cal-day-num">${d.num}</div><div class="cal-day-month">${d.month}</div>
-    </div>`;
-  }).join('');
+    const isSat=d.dayOfWeek===6;
+    const isSel=selectedDays.has(d.label);
+    const el=document.createElement('div');
+    el.className='cal-day'+(isB?' blocked':'')+(isSat?' sat':'')+(isSel?' selected-day':'');
+    if(isB) el.innerHTML+='<div class="cal-blocked-tag">חסום</div>';
+    if(hasOv&&!isB) el.innerHTML+='<div class="cal-blocked-tag" style="background:rgba(37,99,235,0.2);color:var(--blue);">⚡</div>';
+    el.innerHTML+=`<div class="cal-day-num">${d.num}</div>`;
+    if(!isSat) el.addEventListener('click',()=>toggleDaySelect(d.label));
+    grid.appendChild(el);
+  });
+  updateSelLabel();
   const bTimes=blockedSlots.map(s=>s.time);
+  const upcomingDays=new Set(monthDays.map(d=>d.label));
+  const slotCount={};
+  allOrders.filter(o=>o.status!=='cancelled'&&upcomingDays.has(o.date_label)).forEach(o=>{slotCount[o.time]=(slotCount[o.time]||0)+1;});
   document.getElementById('slots-grid').innerHTML=allSlots().map(t=>{
     const isB=bTimes.includes(t);const cnt=slotCount[t]||0;
-    return `<div class="slot-item${isB?' blocked':''}" onclick="toggleSlot('${t}')">
-      <div class="slot-time">${t}</div>
-      <span class="slot-count-badge">${isB?'🔴':(cnt>0?cnt+'✓':'')}</span>
-    </div>`;
+    const div=document.createElement('div');div.className='slot-item'+(isB?' blocked':'');div.innerHTML='<div class="slot-time">'+t+'</div><span class="slot-count-badge">'+(isB?'🔴':(cnt>0?cnt+'✓':''))+'</span>';div.addEventListener('click',()=>toggleSlot(t));return div.outerHTML;
   }).join('');
 }
 
