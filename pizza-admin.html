@@ -932,21 +932,6 @@ async function saveGlobalMax(){
 }
 
 // range/month override replaced by selection model
-    labels=getDatesInRange(new Date(from), new Date(to));
-  } else {
-    const mo=parseInt(document.getElementById('ov-month-sel').value);
-    const yr=parseInt(document.getElementById('ov-year-sel').value);
-    labels=getMonthDays(yr,mo).map(d=>d.label);
-  }
-  try {
-    for(const label of labels) {
-      await sbDelete(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(label)}`);
-      if(window._hourOverrides) delete window._hourOverrides[label];
-    }
-    st.style.color='var(--orange)'; st.textContent=`🗑 נוקה ${labels.length} ימים — חוזר לברירת מחדל`;
-    renderSchedule();
-  } catch(err){st.style.color='var(--red)';st.textContent='❌ שגיאה';}
-}
 
 async function loadHoursSettings() {
   try {
