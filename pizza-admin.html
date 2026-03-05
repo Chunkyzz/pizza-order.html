@@ -850,22 +850,49 @@ function renderSchedule(){
     grid.appendChild(el);
   });
   updateSelLabel();
-  const bTimes=blockedSlots.map(s=>s.time);
-  const upcomingDays=new Set(monthDays.map(d=>d.label));
+  renderSlots();
+}
+
+function renderSlots() {
+  const label = document.getElementById('slots-day-label');
+  // Determine hours for selected day
+  let startH=18, endH=22;
+  const defStart = parseInt(document.getElementById('def-start')?.value||18);
+  const defEnd = parseInt(document.getElementById('def-end')?.value||22);
+  startH = defStart; endH = defEnd;
+  if(selectedViewDay) {
+    const ov = window._hourOverrides && window._hourOverrides[selectedViewDay];
+    if(ov) { startH=ov.start_hour; endH=ov.end_hour; }
+    if(label) label.textContent = selectedViewDay + (ov ? ' ⚡ שעות מיוחדות' : ' · שעות ברירת מחדל');
+  } else {
+    if(label) label.textContent = 'לחץ על יום בלוח לראות שעותיו';
+  }
+  const slots = allSlots(startH, endH);
+  const bTimes = blockedSlots.map(s=>s.time);
+  const dayOrders = selectedViewDay
+    ? allOrders.filter(o=>o.status!=='cancelled'&&o.date_label===selectedViewDay)
+    : [];
   const slotCount={};
-  allOrders.filter(o=>o.status!=='cancelled'&&upcomingDays.has(o.date_label)).forEach(o=>{slotCount[o.time]=(slotCount[o.time]||0)+1;});
-  document.getElementById('slots-grid').innerHTML=allSlots().map(t=>{
-    const isB=bTimes.includes(t);const cnt=slotCount[t]||0;
-    const div=document.createElement('div');div.className='slot-item'+(isB?' blocked':'');div.innerHTML='<div class="slot-time">'+t+'</div><span class="slot-count-badge">'+(isB?'🔴':(cnt>0?cnt+'✓':''))+'</span>';div.addEventListener('click',()=>toggleSlot(t));return div.outerHTML;
+  dayOrders.forEach(o=>{slotCount[o.time]=(slotCount[o.time]||0)+1;});
+  document.getElementById('slots-grid').innerHTML = slots.map(t=>{
+    const isB=bTimes.includes(t); const cnt=slotCount[t]||0;
+    const div=document.createElement('div');
+    div.className='slot-item'+(isB?' blocked':'');
+    div.innerHTML='<div class="slot-time">'+t+'</div><span class="slot-count-badge">'+(isB?'🔴':(cnt>0?cnt+'✓':''))+'</span>';
+    div.addEventListener('click',()=>toggleSlot(t));
+    return div.outerHTML;
   }).join('');
 }
 
 const selectedDays = new Set();
+let selectedViewDay = null;
 
 function toggleDaySelect(label) {
   if(selectedDays.has(label)) selectedDays.delete(label);
   else selectedDays.add(label);
+  selectedViewDay = label;
   renderSchedule();
+  renderSlots();
 }
 
 function updateSelLabel() {
