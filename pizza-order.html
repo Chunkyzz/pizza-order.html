@@ -902,12 +902,18 @@ async function applyCoupon() {
       O.couponDiscount = 40;
       const gname = PNAMES[O.couponMeta.get]||'פיצה';
       discountLabel = '🎉 קופון הופעל! '+gname+' חינם 🛍';
+    } else if(coupon.type==='first_free') {
+      O.couponDiscount = 40;
+      discountLabel = '🎉 קופון הופעל! הפיצה הראשונה שלך חינם 🆓';
     } else if(coupon.type==='free_pizza') {
       O.couponDiscount = 40;
       discountLabel = '🎉 קופון הופעל! פיצה חינם 🍕';
     } else if(coupon.type==='free_margherita') {
       O.couponDiscount = 40;
       discountLabel = '🎉 קופון הופעל! מרגריטה חינם 🍅';
+    } else if(coupon.type==='first_free') {
+      O.couponDiscount = 40; // value of first pizza
+      discountLabel = '🎉 קופון הופעל! הפיצה הראשונה שלך — חינם 🆓';
     }
     statusEl.style.background = 'rgba(78,203,113,0.1)';
     statusEl.style.color = 'var(--green)';

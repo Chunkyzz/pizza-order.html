@@ -459,6 +459,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <button class="coup-type-btn" data-type="percent" onclick="setCouponType('percent',this)">📊 הנחה באחוזים</button>
               <button class="coup-type-btn" data-type="free_item" onclick="setCouponType('free_item',this)">🎁 מוצר חינם מהתפריט</button>
               <button class="coup-type-btn" data-type="buy_get" onclick="setCouponType('buy_get',this)">🛍 קנה X קבל Y</button>
+              <button class="coup-type-btn" data-type="first_free" onclick="setCouponType('first_free',this)">🆓 פיצה ראשונה חינם</button>
             </div>
           </div>
 
@@ -484,6 +485,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <option value="selek">🟣 סלק</option>
             </select>
             <span style="font-size:0.75rem;color:var(--muted);">ניתן בקניית כל פיצה מהתפריט</span>
+          </div>
+
+          <div id="coup-input-first_free" style="display:none;align-items:center;gap:8px;">
+            <span style="font-size:0.85rem;background:rgba(22,163,74,0.1);color:var(--green);border:1px solid rgba(22,163,74,0.2);padding:8px 14px;border-radius:8px;">✅ הלקוח מקבל את הפיצה הראשונה בהזמנה — חינם, בלי תנאים</span>
+          </div>
+
+            <span style="font-size:0.85rem;color:var(--muted);">הלקוח בוחר איזו פיצה שהוא רוצה — הראשונה יורדת מהחשבון ✅</span>
           </div>
 
           <div id="coup-input-buy_get" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1189,7 +1197,7 @@ function setCouponType(type, btn) {
   _couponType = type;
   document.querySelectorAll('.coup-type-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  ['fixed','percent','free_item','buy_get'].forEach(t=>{
+  ['fixed','percent','free_item','buy_get','first_free'].forEach(t=>{
     const el=document.getElementById('coup-input-'+t);
     if(el) el.style.display = t===type?'flex':'none';
   });
@@ -1212,6 +1220,8 @@ function updateCouponPreview() {
     const buy = PIZZA_NAMES[document.getElementById('coup-val-buy')?.value]||'פיצה';
     const get = PIZZA_NAMES[document.getElementById('coup-val-get')?.value]||'פיצה';
     prev.innerHTML = '🎟 הלקוח יקבל: <strong>'+get+' חינם בקניית '+buy+'</strong>';
+  } else if(_couponType==='first_free') {
+    prev.innerHTML = '🎟 הלקוח יקבל: <strong>הפיצה הראשונה בהזמנה — חינם! 🆓</strong>';
   }
 }
 
@@ -1248,6 +1258,7 @@ function formatCouponLabel(cp) {
   if(cp.type==='percent') return '📊 הנחה של '+(cp.value||'?')+'%';
   if(cp.type==='free_item') {const m=cp.meta||{};return '🎁 '+(PIZZA_NAMES[m.item]||m.item||'מוצר')+' חינם';}
   if(cp.type==='buy_get') {const m=cp.meta||{};return '🛍 קנה '+(PIZZA_NAMES[m.buy]||m.buy||'?')+' קבל '+(PIZZA_NAMES[m.get]||m.get||'?')+' חינם';}
+  if(cp.type==='first_free') return '🆓 פיצה ראשונה חינם';
   if(cp.type==='free_pizza') return '🍕 פיצה חינם (1+1)';
   if(cp.type==='free_margherita') return '🍅 מרגריטה חינם';
   return cp.type;
