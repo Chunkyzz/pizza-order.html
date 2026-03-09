@@ -184,6 +184,18 @@ input::placeholder{color:#3a3830;}
   <div style="margin-top:24px;font-size:0.78rem;color:var(--muted);">נשמח לראותך בפעם הבאה 🙂</div>
 </div>
 
+<!-- Sold out screen -->
+<div id="sold-out-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9998;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;">
+  <div style="font-size:4rem;margin-bottom:16px;">🍕</div>
+  <div style="font-size:1.6rem;font-weight:900;margin-bottom:8px;" id="sold-out-msg-display">נגמר הבצק להיום!</div>
+  <div style="font-size:0.9rem;color:var(--muted);max-width:280px;line-height:1.5;margin-bottom:24px;">כל כדורי הבצק הוזמנו להיום</div>
+  <div id="sold-out-wa" style="display:none;">
+    <a id="sold-out-wa-link" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#25d366;color:white;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:700;font-size:0.9rem;">
+      💬 שאלות? דברו איתנו בוואטסאפ
+    </a>
+  </div>
+</div>
+
 <nav class="top-nav"><div class="top-nav-inner"><div class="nav-logo">🍕 פיצה זמני | Pop up איטלקי</div></div></nav>
 <div class="prog-bar">
   <div class="prog-inner">
@@ -428,12 +440,39 @@ const PIZZAS = [
 // Check if restaurant is open
 async function checkRestaurantOpen() {
   try {
-    const rows = await fetch(SB_URL+'/rest/v1/restaurant_status?id=eq.1&select=*',
-      {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json());
-    if(rows && rows.length > 0 && rows[0].is_open === false) {
-      const msg = rows[0].closed_message || '';
+    const [statusRows, settingsRows] = await Promise.all([
+      fetch(SB_URL+'/rest/v1/restaurant_status?id=eq.1&select=*',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json()),
+      fetch(SB_URL+'/rest/v1/restaurant_settings?select=*',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json())
+    ]);
+    // Check closed
+    if(statusRows && statusRows.length>0 && statusRows[0].is_open===false) {
+      const msg = statusRows[0].closed_message || '';
       document.getElementById('closed-msg-display').textContent = msg;
       document.getElementById('restaurant-closed').style.display = 'flex';
+      return;
+    }
+    // Check daily limit
+    if(settingsRows && settingsRows.length>0) {
+      const s = settingsRows[0];
+      if(s.daily_limit) {
+        // Count today's pizza orders
+        const ns=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+        const today = new Date();
+        const todayLabel = 'יום '+ns[today.getDay()]+', '+today.getDate()+' '+today.toLocaleDateString('he-IL',{month:'short'});
+        const orders = await fetch(SB_URL+'/rest/v1/pizza_orders?date_label=eq.'+encodeURIComponent(todayLabel)+'&status=neq.cancelled&select=pizzas',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json());
+        let total=0;
+        orders.forEach(o=>{if(o.pizzas) Object.values(o.pizzas).forEach(v=>{total+=typeof v==='object'?(v.qty||0):v;});});
+        if(total >= s.daily_limit) {
+          document.getElementById('sold-out-msg-display').textContent = s.sold_out_msg || 'נגמר הבצק להיום! 🍕';
+          if(s.wa_number) {
+            const waEl = document.getElementById('sold-out-wa');
+            const waLink = document.getElementById('sold-out-wa-link');
+            waEl.style.display='block';
+            waLink.href = 'https://wa.me/'+s.wa_number;
+          }
+          document.getElementById('sold-out-screen').style.display='flex';
+        }
+      }
     }
   } catch(e) {}
 }
@@ -972,6 +1011,6 @@ function step1() { step1Phone(); }
 function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.couponApplied=false;O.couponDiscount=0;O.customerId=null;document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
-  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.8</div>
+  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.9</div>
 </body>
 </html>
