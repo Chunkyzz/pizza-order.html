@@ -427,6 +427,66 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   </div>
 </div>
 
+  <!-- COUPONS -->
+  <div class="view" id="view-coupons">
+    <div class="main">
+
+      <!-- Create coupon -->
+      <div class="sch-card" style="margin-bottom:14px">
+        <div class="sch-card-head"><div class="sch-card-title">🎟 יצירת קופון חדש</div><div class="sch-card-sub">הגדר קוד, סוג הנחה ומגבלות</div></div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">קוד קופון:</label>
+              <input type="text" id="new-coupon-code" class="hsel" placeholder="PIZZA20" style="width:130px;text-transform:uppercase;font-weight:900;letter-spacing:1px;" oninput="this.value=this.value.toUpperCase()"/>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">סוג:</label>
+              <select id="new-coupon-type" class="hsel" onchange="updateCouponPreview()">
+                <option value="free_pizza">🍕 פיצה חינם (1+1)</option>
+                <option value="free_margherita">🍅 מרגריטה חינם</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">פעיל:</label>
+              <input type="checkbox" id="new-coupon-active" checked style="width:18px;height:18px;cursor:pointer;"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">תיאור (אופציונלי):</label>
+              <input type="text" id="new-coupon-desc" class="hsel" placeholder="קופון השקה לחברים" style="width:200px;"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <div id="coupon-preview" style="font-size:0.8rem;color:var(--blue);background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);padding:7px 12px;border-radius:8px;flex:1;">מה הלקוח יקבל: <strong>פיצה אחת חינם בקניית פיצה</strong></div>
+            <button onclick="createCoupon()" style="padding:9px 20px;background:var(--orange);border:none;border-radius:8px;color:white;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">+ צור קופון</button>
+          </div>
+          <div id="create-coupon-status" style="font-size:0.78rem;display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Coupons list -->
+      <div class="sch-card" style="margin-bottom:14px">
+        <div class="sch-card-head" style="display:flex;justify-content:space-between;align-items:center;">
+          <div><div class="sch-card-title">📋 קופונים קיימים</div><div class="sch-card-sub">לחץ על קופון לצפייה במי השתמש</div></div>
+          <button onclick="loadCoupons()" style="padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:8px;font-family:'Heebo',sans-serif;font-size:0.78rem;cursor:pointer;">🔄 רענן</button>
+        </div>
+        <div id="coupons-list" style="padding:12px 16px;"><div class="loading">⏳</div></div>
+      </div>
+
+      <!-- Uses log -->
+      <div class="sch-card" id="coupon-uses-card" style="display:none;">
+        <div class="sch-card-head" style="display:flex;justify-content:space-between;align-items:center;">
+          <div><div class="sch-card-title" id="coupon-uses-title">📊 שימושים</div><div class="sch-card-sub" id="coupon-uses-sub"></div></div>
+          <button onclick="document.getElementById('coupon-uses-card').style.display='none'" style="padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:8px;font-family:'Heebo',sans-serif;font-size:0.78rem;cursor:pointer;">✕ סגור</button>
+        </div>
+        <div id="coupon-uses-list" style="padding:12px 16px;"></div>
+      </div>
+
+    </div>
+  </div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -550,6 +610,7 @@ function switchTab(tab,btn){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('show'));
   document.getElementById('view-'+tab).classList.add('show');
   if(tab==='schedule') renderSchedule();
+  if(tab==='coupons') loadCoupons();
   if(tab==='history') initHistoryDates();
 }
 
@@ -1063,6 +1124,118 @@ async function saveDailyLimit() {
     st.style.display='block'; setTimeout(()=>st.style.display='none',2000);
     toast('✅ מכסה נשמרה: '+limit+' פיצות');
   } catch(e) { toast('❌ '+e.message); }
+}
+
+const COUPON_TYPES = {
+  free_pizza: { label: 'פיצה חינם (1+1)', desc: 'פיצה אחת חינם בקניית פיצה מהתפריט' },
+  free_margherita: { label: 'מרגריטה חינם', desc: 'מרגריטה חינם בקניית פיצה מהתפריט' }
+};
+
+function updateCouponPreview() {
+  const type = document.getElementById('new-coupon-type').value;
+  document.getElementById('coupon-preview').innerHTML =
+    'מה הלקוח יקבל: <strong>' + COUPON_TYPES[type].desc + '</strong>';
+}
+
+async function createCoupon() {
+  const code = document.getElementById('new-coupon-code').value.trim().toUpperCase();
+  const type = document.getElementById('new-coupon-type').value;
+  const desc = document.getElementById('new-coupon-desc').value.trim();
+  const active = document.getElementById('new-coupon-active').checked;
+  const st = document.getElementById('create-coupon-status');
+  if(!code) { toast('⚠️ חסר קוד קופון'); return; }
+  st.style.display='block'; st.style.color='var(--muted)'; st.textContent='⏳ יוצר...';
+  try {
+    await sbPost('/rest/v1/coupons', { code, type, description: desc, is_active: active });
+    st.style.color='var(--green)'; st.textContent='✅ קופון "'+code+'" נוצר!';
+    document.getElementById('new-coupon-code').value='';
+    document.getElementById('new-coupon-desc').value='';
+    toast('🎟 קופון '+code+' נוצר!');
+    loadCoupons();
+  } catch(e) {
+    st.style.color='var(--red)';
+    st.textContent = e.message.includes('unique') ? '❌ קוד זה כבר קיים' : '❌ '+e.message;
+  }
+}
+
+async function loadCoupons() {
+  const el = document.getElementById('coupons-list');
+  el.innerHTML='<div class="loading">⏳</div>';
+  try {
+    const coupons = await sbGet('/rest/v1/coupons?select=*&order=created_at.desc');
+    const uses = await sbGet('/rest/v1/coupon_uses?select=coupon_code');
+    // Count uses per coupon
+    const useCounts = {};
+    uses.forEach(u => { useCounts[u.coupon_code] = (useCounts[u.coupon_code]||0)+1; });
+
+    if(!coupons.length) { el.innerHTML='<div style="color:var(--muted);text-align:center;padding:20px;">אין קופונים עדיין</div>'; return; }
+
+    el.innerHTML = coupons.map(cp => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;" id="coup-row-${cp.id}">
+        <div style="font-size:1.1rem;font-weight:900;font-family:monospace;letter-spacing:2px;min-width:100px;">${cp.code}</div>
+        <div style="flex:1;">
+          <div style="font-size:0.8rem;font-weight:700;">${COUPON_TYPES[cp.type]?.label||cp.type}</div>
+          ${cp.description?'<div style="font-size:0.72rem;color:var(--muted);">'+cp.description+'</div>':''}
+        </div>
+        <div style="font-size:0.78rem;color:var(--muted);">שימושים: <strong style="color:var(--text);">${useCounts[cp.code]||0}</strong></div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:0.72rem;padding:3px 8px;border-radius:20px;font-weight:700;background:${cp.is_active?'rgba(22,163,74,0.1)':'rgba(0,0,0,0.06)'};color:${cp.is_active?'var(--green)':'var(--muted)'};">${cp.is_active?'פעיל':'כבוי'}</span>
+          <button onclick="toggleCoupon('${cp.id}',${cp.is_active})" class="act-btn ${cp.is_active?'act-ghost':'act-green'}" style="font-size:0.72rem;padding:4px 10px;">${cp.is_active?'כבה':'הפעל'}</button>
+          <button onclick="showCouponUses('${cp.code}')" class="act-btn act-blue" style="font-size:0.72rem;padding:4px 10px;">📊 מי השתמש</button>
+          <button onclick="deleteCoupon('${cp.id}','${cp.code}')" class="act-btn act-red" style="font-size:0.72rem;padding:4px 10px;">🗑</button>
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML='<div style="color:var(--red);">שגיאה: '+e.message+'</div>'; }
+}
+
+async function toggleCoupon(id, currentlyActive) {
+  try {
+    await sbPatch('/rest/v1/coupons?id=eq.'+id, { is_active: !currentlyActive });
+    toast(currentlyActive ? '⏸ קופון כובה' : '▶️ קופון הופעל');
+    loadCoupons();
+  } catch(e) { toast('❌ '+e.message); }
+}
+
+async function deleteCoupon(id, code) {
+  if(!confirm('למחוק קופון '+code+'? פעולה זו לא ניתנת לביטול.')) return;
+  try {
+    await sbDelete('/rest/v1/coupons?id=eq.'+id);
+    toast('🗑 קופון '+code+' נמחק');
+    loadCoupons();
+  } catch(e) { toast('❌ '+e.message); }
+}
+
+async function showCouponUses(code) {
+  const card = document.getElementById('coupon-uses-card');
+  const list = document.getElementById('coupon-uses-list');
+  card.style.display='block';
+  document.getElementById('coupon-uses-title').textContent = '📊 שימושים בקופון: '+code;
+  list.innerHTML='<div class="loading">⏳</div>';
+  card.scrollIntoView({behavior:'smooth'});
+  try {
+    const uses = await sbGet('/rest/v1/coupon_uses?coupon_code=eq.'+encodeURIComponent(code)+'&order=used_at.desc&select=*');
+    document.getElementById('coupon-uses-sub').textContent = uses.length + ' שימושים סה"כ';
+    if(!uses.length) { list.innerHTML='<div style="color:var(--muted);padding:12px;">אין שימושים עדיין</div>'; return; }
+    // Also fetch customer names
+    const phones = uses.map(u=>u.phone).join(',');
+    let customers = {};
+    try {
+      const cust = await sbGet('/rest/v1/customers?phone=in.('+phones+')&select=phone,name,address');
+      cust.forEach(c => { customers[c.phone] = c; });
+    } catch(e){}
+    list.innerHTML = uses.map(u => {
+      const cust = customers[u.phone]||{};
+      const date = new Date(u.used_at).toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+        <div style="font-size:1rem;">👤</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:0.88rem;">${cust.name||'לא ידוע'}</div>
+          <div style="font-size:0.75rem;color:var(--muted);">${u.phone} ${cust.address?'· '+cust.address:''}</div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);">${date}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { list.innerHTML='<div style="color:var(--red);">שגיאה: '+e.message+'</div>'; }
 }
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}

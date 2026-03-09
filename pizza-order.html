@@ -400,7 +400,11 @@ input::placeholder{color:#3a3830;}
 
 <script>
 const SB_URL = 'https://qgmyaxxzebwcatetbngs.supabase.co';
-const COUPON_CODE = 'ZMANI1';
+// coupons loaded dynamically from DB
+let _activeCoupons = [];
+async function loadActiveCoupons() {
+  try { _activeCoupons = await fetch(SB_URL+'/rest/v1/coupons?is_active=eq.true&select=*',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json()); } catch(e){}
+}
 const COUPON_DISCOUNT = 40;
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnbXlheHh6ZWJ3Y2F0ZXRibmdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NjAzNzgsImV4cCI6MjA4NzMzNjM3OH0.fjayqe6M6YgrLALJcAZIPAqgzoTVfSZkGbc4nSqmxHI';
 const HDR = {'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'};
@@ -477,6 +481,7 @@ async function checkRestaurantOpen() {
   } catch(e) {}
 }
 checkRestaurantOpen();
+loadActiveCoupons();
 
 const O = {name:'',phone:'',address:'',date:null,dateLabel:'',time:'',pizzas:{},payMethod:'',couponApplied:false,couponDiscount:0,customerId:null};
 let curStep = 1;
@@ -817,7 +822,7 @@ function renderSummary() {
   document.getElementById('total-disp').textContent='₪'+tot;
   document.getElementById('cash-amount').textContent=tot;
   document.getElementById('app-amount').textContent=tot;
-  O.couponApplied=false;O.couponDiscount=0;
+  O.couponApplied=false;O.couponDiscount=0;O.couponCode=null;O.couponType=null;
   const ci=document.getElementById('coupon-input');if(ci){ci.value='';ci.disabled=false;}
   const cs=document.getElementById('coupon-status');if(cs)cs.style.display='none';
   O.payMethod='';
@@ -847,35 +852,50 @@ async function applyCoupon() {
     statusEl.textContent = '⚠️ קופון כבר הופעל';
     return;
   }
-  if(code !== COUPON_CODE) {
+  if(!code) return;
+
+  // Reload active coupons if needed
+  if(!_activeCoupons.length) await loadActiveCoupons();
+  const coupon = _activeCoupons.find(c => c.code === code);
+  if(!coupon) {
     statusEl.style.background = 'rgba(232,112,106,0.1)';
     statusEl.style.color = 'var(--red)';
-    statusEl.textContent = '❌ קוד קופון שגוי';
+    statusEl.textContent = '❌ קוד קופון שגוי או לא פעיל';
     return;
   }
-  // Check if phone already used
+
   statusEl.style.background = 'rgba(125,196,192,0.1)';
   statusEl.style.color = 'var(--teal)';
   statusEl.textContent = '⏳ בודק...';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/coupon_uses?phone=eq.${encodeURIComponent(O.phone)}&select=id`,{
+    // Check if this phone already used this coupon
+    const usedRes = await fetch(`${SB_URL}/rest/v1/coupon_uses?phone=eq.${encodeURIComponent(O.phone)}&coupon_code=eq.${encodeURIComponent(code)}&select=id`,{
       headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
     });
-    const rows = await res.json();
-    if(rows.length > 0) {
+    const usedRows = await usedRes.json();
+    if(usedRows.length > 0) {
       statusEl.style.background = 'rgba(232,112,106,0.1)';
       statusEl.style.color = 'var(--red)';
-      statusEl.textContent = '❌ הקופון כבר שומש במספר זה';
+      statusEl.textContent = '❌ השתמשת בקופון הזה בעבר';
       return;
     }
-    // Valid!
+    // Valid! Apply coupon
     O.couponApplied = true;
-    O.couponDiscount = COUPON_DISCOUNT;
+    O.couponCode = coupon.code;
+    O.couponType = coupon.type;
+    // Determine discount label
+    let discountLabel = '';
+    if(coupon.type === 'free_pizza') {
+      O.couponDiscount = 40; // value of cheapest pizza
+      discountLabel = '🎉 קופון הופעל! פיצה חינם';
+    } else if(coupon.type === 'free_margherita') {
+      O.couponDiscount = 40;
+      discountLabel = '🎉 קופון הופעל! מרגריטה חינם';
+    }
     statusEl.style.background = 'rgba(78,203,113,0.1)';
     statusEl.style.color = 'var(--green)';
-    statusEl.textContent = '🎉 קופון הופעל! הנחה של ₪40';
+    statusEl.textContent = discountLabel;
     document.getElementById('coupon-input').disabled = true;
-    // Update totals display
     const tot = totPrice();
     document.getElementById('total-disp').textContent = '₪'+tot;
     document.getElementById('cash-amount').textContent = tot;
@@ -904,10 +924,10 @@ async function finalConfirm(method) {
       id,name:O.name,phone:O.phone,address:O.address,
       date_label:O.dateLabel,time:O.time,pizza_lines:pizzaLines,
       pizzas:pizzasData,total:totPrice(),pay_method:method,
-      status:'new',coupon_used:O.couponApplied?COUPON_CODE:null
+      status:'new',coupon_used:O.couponApplied?(O.couponCode||null):null
     });
     if(O.couponApplied) {
-      await sbPost('/rest/v1/coupon_uses',{phone:O.phone,coupon_code:COUPON_CODE});
+      await sbPost('/rest/v1/coupon_uses',{phone:O.phone,coupon_code:O.couponCode});
     }
     // Update orders_count
     if(O.customerId) {
@@ -1008,7 +1028,7 @@ function backToPhone() {
 }
 
 function step1() { step1Phone(); }
-function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.couponApplied=false;O.couponDiscount=0;O.customerId=null;document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
+function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.couponApplied=false;O.couponDiscount=0;O.couponCode=null;O.couponType=null;O.customerId=null;document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
   <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.9</div>
