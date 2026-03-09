@@ -355,7 +355,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
               <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">ד׳</div>
               <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">ה׳</div>
               <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">ו׳</div>
-              <div style="text-align:center;font-size:0.6rem;color:rgba(0,0,0,0.15);padding:4px 0;">ש׳</div>
+              <div style="text-align:center;font-size:0.6rem;color:var(--muted);padding:4px 0;">ש׳</div>
             </div>
             <div class="cal-grid" id="cal-grid" style="grid-template-columns:repeat(7,1fr)"><div class="loading">⏳</div></div>
             <div class="cal-legend" style="margin-top:8px;">
@@ -871,7 +871,7 @@ function renderSchedule(){
     el.innerHTML+=`<div class="cal-day-num">${d.num}</div>`;
     const isPast = d.date < new Date(new Date().setHours(0,0,0,0));
     if(isPast) el.classList.add('past');
-    if(!isSat && !isPast) el.addEventListener('click',()=>toggleDaySelect(d.label));
+    if(!isPast) el.addEventListener('click',()=>toggleDaySelect(d.label));
     grid.appendChild(el);
   });
   updateSelLabel();

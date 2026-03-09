@@ -46,7 +46,7 @@ input::placeholder{color:#3a3830;}
 .month-nav-btn{background:none;border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;}
 .month-nav-label{font-size:0.9rem;font-weight:700;}
 .day-header{text-align:center;font-size:0.58rem;color:var(--muted);padding:3px 0;}
-.day-card.sat{opacity:0.2;cursor:default;pointer-events:none;}
+
 .day-card.past{opacity:0.35;pointer-events:none;}
 .day-card.empty{background:none;border:none;cursor:default;}
 .day-card{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:10px 5px;text-align:center;cursor:pointer;transition:all 0.18s;position:relative;}
@@ -289,7 +289,7 @@ input::placeholder{color:#3a3830;}
     <button class="month-nav-btn" onclick="nextMonthOrder()">›</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">
-    <div class="day-header">א׳</div><div class="day-header">ב׳</div><div class="day-header">ג׳</div><div class="day-header">ד׳</div><div class="day-header">ה׳</div><div class="day-header">ו׳</div><div class="day-header" style="opacity:0.3">ש׳</div>
+    <div class="day-header">א׳</div><div class="day-header">ב׳</div><div class="day-header">ג׳</div><div class="day-header">ד׳</div><div class="day-header">ה׳</div><div class="day-header">ו׳</div><div class="day-header">ש׳</div>
   </div>
   <div class="days-grid" id="days-grid"><div class="loading-slots">⏳ טוען ימים...</div></div>
 </div>
