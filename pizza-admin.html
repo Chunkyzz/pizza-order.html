@@ -1128,14 +1128,28 @@ async function saveDailyLimit() {
 }
 
 const COUPON_TYPES = {
-  free_pizza: { label: 'פיצה חינם (1+1)', desc: 'פיצה אחת חינם בקניית פיצה מהתפריט' },
-  free_margherita: { label: 'מרגריטה חינם', desc: 'מרגריטה חינם בקניית פיצה מהתפריט' }
+  free_pizza:      { label: 'פיצה חינם (1+1)',   desc: 'פיצה אחת חינם בקניית פיצה מהתפריט' },
+  free_margherita: { label: 'מרגריטה חינם',       desc: 'מרגריטה חינם בקניית פיצה מהתפריט' },
+  fixed:           { label: 'הנחה בשקלים',        desc: 'הנחה קבועה בשקלים' },
+  percent:         { label: 'הנחה באחוזים',       desc: 'הנחה באחוזים מהסכום הכולל' }
 };
 
 function updateCouponPreview() {
   const type = document.getElementById('new-coupon-type').value;
-  document.getElementById('coupon-preview').innerHTML =
-    'מה הלקוח יקבל: <strong>' + COUPON_TYPES[type].desc + '</strong>';
+  const wrap = document.getElementById('coupon-value-wrap');
+  const unit = document.getElementById('coupon-value-unit');
+  const valInput = document.getElementById('new-coupon-value');
+  const val = valInput ? parseInt(valInput.value)||10 : 10;
+  if(type === 'fixed') {
+    wrap.style.display='flex'; unit.textContent='₪';
+    document.getElementById('coupon-preview').innerHTML = 'מה הלקוח יקבל: <strong>הנחה של ₪'+val+' מהסכום</strong>';
+  } else if(type === 'percent') {
+    wrap.style.display='flex'; unit.textContent='%';
+    document.getElementById('coupon-preview').innerHTML = 'מה הלקוח יקבל: <strong>הנחה של '+val+'% מהסכום</strong>';
+  } else {
+    wrap.style.display='none';
+    document.getElementById('coupon-preview').innerHTML = 'מה הלקוח יקבל: <strong>' + COUPON_TYPES[type].desc + '</strong>';
+  }
 }
 
 async function createCoupon() {
@@ -1143,11 +1157,13 @@ async function createCoupon() {
   const type = document.getElementById('new-coupon-type').value;
   const desc = document.getElementById('new-coupon-desc').value.trim();
   const active = document.getElementById('new-coupon-active').checked;
+  const valEl = document.getElementById('new-coupon-value');
+  const couponValue = (type==='fixed'||type==='percent') ? (parseInt(valEl?.value)||10) : null;
   const st = document.getElementById('create-coupon-status');
   if(!code) { toast('⚠️ חסר קוד קופון'); return; }
   st.style.display='block'; st.style.color='var(--muted)'; st.textContent='⏳ יוצר...';
   try {
-    await sbPost('/rest/v1/coupons', { code, type, description: desc, is_active: active });
+    await sbPost('/rest/v1/coupons', { code, type, description: desc, is_active: active, value: couponValue });
     st.style.color='var(--green)'; st.textContent='✅ קופון "'+code+'" נוצר!';
     document.getElementById('new-coupon-code').value='';
     document.getElementById('new-coupon-desc').value='';
