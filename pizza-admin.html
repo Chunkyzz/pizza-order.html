@@ -174,6 +174,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .act-green{background:rgba(22,163,74,0.12);color:var(--green);border:1px solid rgba(22,163,74,0.25);}
 .act-blue{background:rgba(37,99,235,0.12);color:var(--blue);border:1px solid rgba(37,99,235,0.25);}
 .act-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.coup-type-btn{padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-family:'Heebo',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;color:var(--text);transition:all 0.15s;}
+.coup-type-btn.active{border-color:var(--orange);background:rgba(232,112,106,0.1);color:var(--orange);}
 .cal-day.selected-day{background:rgba(245,197,24,0.25);border-color:var(--orange2) !important;}
 @media(max-width:700px){.schedule-grid{grid-template-columns:1fr;}}
 .sch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
@@ -434,34 +436,87 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
       <!-- Create coupon -->
       <div class="sch-card" style="margin-bottom:14px">
-        <div class="sch-card-head"><div class="sch-card-title">🎟 יצירת קופון חדש</div><div class="sch-card-sub">הגדר קוד, סוג הנחה ומגבלות</div></div>
-        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <div class="sch-card-head"><div class="sch-card-title">🎟 יצירת קופון חדש</div><div class="sch-card-sub">אתה מגדיר הכל — קוד, מה הלקוח מקבל, כמה שווה</div></div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:14px;">
+
+          <!-- Row 1: Code + active -->
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
             <div style="display:flex;align-items:center;gap:6px;">
               <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">קוד קופון:</label>
-              <input type="text" id="new-coupon-code" class="hsel" placeholder="PIZZA20" style="width:130px;text-transform:uppercase;font-weight:900;letter-spacing:1px;" oninput="this.value=this.value.toUpperCase()"/>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">סוג:</label>
-              <select id="new-coupon-type" class="hsel" onchange="updateCouponPreview()">
-                <option value="free_pizza">🍕 פיצה חינם (1+1)</option>
-                <option value="free_margherita">🍅 מרגריטה חינם</option>
-              </select>
+              <input type="text" id="new-coupon-code" class="hsel" placeholder="ZMANI10" style="width:140px;text-transform:uppercase;font-weight:900;font-size:1rem;letter-spacing:2px;" oninput="this.value=this.value.toUpperCase()"/>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">פעיל:</label>
               <input type="checkbox" id="new-coupon-active" checked style="width:18px;height:18px;cursor:pointer;"/>
             </div>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <div style="display:flex;align-items:center;gap:6px;">
-              <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">תיאור (אופציונלי):</label>
-              <input type="text" id="new-coupon-desc" class="hsel" placeholder="קופון השקה לחברים" style="width:200px;"/>
+
+          <!-- Row 2: Discount type -->
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--muted);margin-bottom:8px;">סוג הטבה:</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="coup-type-btn active" data-type="fixed" onclick="setCouponType('fixed',this)">💰 הנחה בשקלים</button>
+              <button class="coup-type-btn" data-type="percent" onclick="setCouponType('percent',this)">📊 הנחה באחוזים</button>
+              <button class="coup-type-btn" data-type="free_item" onclick="setCouponType('free_item',this)">🎁 מוצר חינם מהתפריט</button>
+              <button class="coup-type-btn" data-type="buy_get" onclick="setCouponType('buy_get',this)">🛍 קנה X קבל Y</button>
             </div>
           </div>
-          <div style="display:flex;gap:10px;align-items:center;">
-            <div id="coupon-preview" style="font-size:0.8rem;color:var(--blue);background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);padding:7px 12px;border-radius:8px;flex:1;">מה הלקוח יקבל: <strong>פיצה אחת חינם בקניית פיצה</strong></div>
-            <button onclick="createCoupon()" style="padding:9px 20px;background:var(--orange);border:none;border-radius:8px;color:white;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">+ צור קופון</button>
+
+          <!-- Type-specific inputs -->
+          <div id="coup-input-fixed" style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:0.78rem;font-weight:700;color:var(--muted);">סכום הנחה:</label>
+            <input type="number" id="coup-val-fixed" class="hsel" value="10" min="1" style="width:80px;text-align:center;font-weight:900;font-size:1.1rem;"/>
+            <span style="font-weight:700;">₪</span>
+          </div>
+
+          <div id="coup-input-percent" style="display:none;align-items:center;gap:8px;">
+            <label style="font-size:0.78rem;font-weight:700;color:var(--muted);">אחוז הנחה:</label>
+            <input type="number" id="coup-val-percent" class="hsel" value="10" min="1" max="100" style="width:80px;text-align:center;font-weight:900;font-size:1.1rem;"/>
+            <span style="font-weight:700;">%</span>
+          </div>
+
+          <div id="coup-input-free_item" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+            <label style="font-size:0.78rem;font-weight:700;color:var(--muted);">המוצר החינמי:</label>
+            <select id="coup-val-free_item" class="hsel">
+              <option value="margherita">🍕 מרגריטה</option>
+              <option value="pesto">🟢 פסטו</option>
+              <option value="polenta">🌽 פולנטה</option>
+              <option value="selek">🟣 סלק</option>
+            </select>
+            <span style="font-size:0.75rem;color:var(--muted);">ניתן בקניית כל פיצה מהתפריט</span>
+          </div>
+
+          <div id="coup-input-buy_get" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+            <label style="font-size:0.78rem;font-weight:700;color:var(--muted);">בקניית:</label>
+            <select id="coup-val-buy" class="hsel">
+              <option value="margherita">🍕 מרגריטה</option>
+              <option value="pesto">🟢 פסטו</option>
+              <option value="polenta">🌽 פולנטה</option>
+              <option value="selek">🟣 סלק</option>
+            </select>
+            <label style="font-size:0.78rem;font-weight:700;color:var(--muted);">מקבל חינם:</label>
+            <select id="coup-val-get" class="hsel">
+              <option value="margherita">🍕 מרגריטה</option>
+              <option value="pesto">🟢 פסטו</option>
+              <option value="polenta">🌽 פולנטה</option>
+              <option value="selek">🟣 סלק</option>
+            </select>
+          </div>
+
+          <!-- Row 3: Description + preview -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;flex:1;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">תיאור ללקוח:</label>
+              <input type="text" id="new-coupon-desc" class="hsel" placeholder="קופון השקה — מתנה מאיתנו 🎁" style="flex:1;"/>
+            </div>
+          </div>
+
+          <!-- Preview + submit -->
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div id="coupon-preview" style="font-size:0.82rem;color:var(--blue);background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);padding:8px 14px;border-radius:8px;flex:1;">
+              תצוגה מקדימה תופיע כאן
+            </div>
+            <button onclick="createCoupon()" style="padding:10px 22px;background:var(--orange);border:none;border-radius:8px;color:white;font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">+ צור קופון</button>
           </div>
           <div id="create-coupon-status" style="font-size:0.78rem;display:none;"></div>
         </div>
@@ -1127,43 +1182,56 @@ async function saveDailyLimit() {
   } catch(e) { toast('❌ '+e.message); }
 }
 
-const COUPON_TYPES = {
-  free_pizza:      { label: 'פיצה חינם (1+1)',   desc: 'פיצה אחת חינם בקניית פיצה מהתפריט' },
-  free_margherita: { label: 'מרגריטה חינם',       desc: 'מרגריטה חינם בקניית פיצה מהתפריט' },
-  fixed:           { label: 'הנחה בשקלים',        desc: 'הנחה קבועה בשקלים' },
-  percent:         { label: 'הנחה באחוזים',       desc: 'הנחה באחוזים מהסכום הכולל' }
-};
+const PIZZA_NAMES = {margherita:'מרגריטה',pesto:'פסטו',polenta:'פולנטה',selek:'סלק'};
+let _couponType = 'fixed';
+
+function setCouponType(type, btn) {
+  _couponType = type;
+  document.querySelectorAll('.coup-type-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['fixed','percent','free_item','buy_get'].forEach(t=>{
+    const el=document.getElementById('coup-input-'+t);
+    if(el) el.style.display = t===type?'flex':'none';
+  });
+  updateCouponPreview();
+}
 
 function updateCouponPreview() {
-  const type = document.getElementById('new-coupon-type').value;
-  const wrap = document.getElementById('coupon-value-wrap');
-  const unit = document.getElementById('coupon-value-unit');
-  const valInput = document.getElementById('new-coupon-value');
-  const val = valInput ? parseInt(valInput.value)||10 : 10;
-  if(type === 'fixed') {
-    wrap.style.display='flex'; unit.textContent='₪';
-    document.getElementById('coupon-preview').innerHTML = 'מה הלקוח יקבל: <strong>הנחה של ₪'+val+' מהסכום</strong>';
-  } else if(type === 'percent') {
-    wrap.style.display='flex'; unit.textContent='%';
-    document.getElementById('coupon-preview').innerHTML = 'מה הלקוח יקבל: <strong>הנחה של '+val+'% מהסכום</strong>';
-  } else {
-    wrap.style.display='none';
-    document.getElementById('coupon-preview').innerHTML = 'מה הלקוח יקבל: <strong>' + COUPON_TYPES[type].desc + '</strong>';
+  const prev = document.getElementById('coupon-preview');
+  if(!prev) return;
+  if(_couponType==='fixed') {
+    const v = document.getElementById('coup-val-fixed')?.value||10;
+    prev.innerHTML = '🎟 הלקוח יקבל: <strong>הנחה של ₪'+v+'</strong>';
+  } else if(_couponType==='percent') {
+    const v = document.getElementById('coup-val-percent')?.value||10;
+    prev.innerHTML = '🎟 הלקוח יקבל: <strong>הנחה של '+v+'% מהסכום</strong>';
+  } else if(_couponType==='free_item') {
+    const item = PIZZA_NAMES[document.getElementById('coup-val-free_item')?.value]||'פיצה';
+    prev.innerHTML = '🎟 הלקוח יקבל: <strong>'+item+' חינם בקניית פיצה מהתפריט</strong>';
+  } else if(_couponType==='buy_get') {
+    const buy = PIZZA_NAMES[document.getElementById('coup-val-buy')?.value]||'פיצה';
+    const get = PIZZA_NAMES[document.getElementById('coup-val-get')?.value]||'פיצה';
+    prev.innerHTML = '🎟 הלקוח יקבל: <strong>'+get+' חינם בקניית '+buy+'</strong>';
   }
 }
 
 async function createCoupon() {
   const code = document.getElementById('new-coupon-code').value.trim().toUpperCase();
-  const type = document.getElementById('new-coupon-type').value;
+  const type = _couponType;
   const desc = document.getElementById('new-coupon-desc').value.trim();
   const active = document.getElementById('new-coupon-active').checked;
-  const valEl = document.getElementById('new-coupon-value');
-  const couponValue = (type==='fixed'||type==='percent') ? (parseInt(valEl?.value)||10) : null;
+  // Build value object based on type
+  let couponValue = null;
+  let couponMeta = {};
+  if(type==='fixed') couponValue = parseInt(document.getElementById('coup-val-fixed').value)||10;
+  else if(type==='percent') couponValue = parseInt(document.getElementById('coup-val-percent').value)||10;
+  else if(type==='free_item') couponMeta = {item: document.getElementById('coup-val-free_item').value};
+  else if(type==='buy_get') couponMeta = {buy: document.getElementById('coup-val-buy').value, get: document.getElementById('coup-val-get').value};
   const st = document.getElementById('create-coupon-status');
   if(!code) { toast('⚠️ חסר קוד קופון'); return; }
   st.style.display='block'; st.style.color='var(--muted)'; st.textContent='⏳ יוצר...';
   try {
-    await sbPost('/rest/v1/coupons', { code, type, description: desc, is_active: active, value: couponValue });
+    await sbPost('/rest/v1/coupons', { code, type, description: desc, is_active: active, value: couponValue, meta: couponMeta });
     st.style.color='var(--green)'; st.textContent='✅ קופון "'+code+'" נוצר!';
     document.getElementById('new-coupon-code').value='';
     document.getElementById('new-coupon-desc').value='';
@@ -1173,6 +1241,16 @@ async function createCoupon() {
     st.style.color='var(--red)';
     st.textContent = e.message.includes('unique') ? '❌ קוד זה כבר קיים' : '❌ '+e.message;
   }
+}
+
+function formatCouponLabel(cp) {
+  if(cp.type==='fixed') return '💰 הנחה של ₪'+(cp.value||'?');
+  if(cp.type==='percent') return '📊 הנחה של '+(cp.value||'?')+'%';
+  if(cp.type==='free_item') {const m=cp.meta||{};return '🎁 '+(PIZZA_NAMES[m.item]||m.item||'מוצר')+' חינם';}
+  if(cp.type==='buy_get') {const m=cp.meta||{};return '🛍 קנה '+(PIZZA_NAMES[m.buy]||m.buy||'?')+' קבל '+(PIZZA_NAMES[m.get]||m.get||'?')+' חינם';}
+  if(cp.type==='free_pizza') return '🍕 פיצה חינם (1+1)';
+  if(cp.type==='free_margherita') return '🍅 מרגריטה חינם';
+  return cp.type;
 }
 
 async function loadCoupons() {

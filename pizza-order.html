@@ -883,22 +883,31 @@ async function applyCoupon() {
     O.couponApplied = true;
     O.couponCode = coupon.code;
     O.couponType = coupon.type;
+    O.couponMeta = coupon.meta || {};
     O.couponValue = coupon.value || 0;
-    // Determine discount
-    let discountLabel = '';
     const subtotal = Object.entries(O.pizzas).reduce((s,[id,d])=>s+(d.qty||0)*40+(d.toppings||[]).length*5,0);
-    if(coupon.type === 'free_pizza') {
+    const PNAMES = {margherita:'מרגריטה',pesto:'פסטו',polenta:'פולנטה',selek:'סלק'};
+    let discountLabel = '';
+    if(coupon.type==='fixed') {
+      O.couponDiscount = coupon.value||0;
+      discountLabel = '🎉 קופון הופעל! הנחה של ₪'+(coupon.value||0);
+    } else if(coupon.type==='percent') {
+      O.couponDiscount = Math.round(subtotal*(coupon.value||0)/100);
+      discountLabel = '🎉 קופון הופעל! הנחה של '+(coupon.value||0)+'%';
+    } else if(coupon.type==='free_item') {
+      O.couponDiscount = 40;
+      const iname = PNAMES[O.couponMeta.item]||'פיצה';
+      discountLabel = '🎉 קופון הופעל! '+iname+' חינם 🎁';
+    } else if(coupon.type==='buy_get') {
+      O.couponDiscount = 40;
+      const gname = PNAMES[O.couponMeta.get]||'פיצה';
+      discountLabel = '🎉 קופון הופעל! '+gname+' חינם 🛍';
+    } else if(coupon.type==='free_pizza') {
       O.couponDiscount = 40;
       discountLabel = '🎉 קופון הופעל! פיצה חינם 🍕';
-    } else if(coupon.type === 'free_margherita') {
+    } else if(coupon.type==='free_margherita') {
       O.couponDiscount = 40;
       discountLabel = '🎉 קופון הופעל! מרגריטה חינם 🍅';
-    } else if(coupon.type === 'fixed') {
-      O.couponDiscount = coupon.value || 0;
-      discountLabel = '🎉 קופון הופעל! הנחה של ₪' + (coupon.value||0);
-    } else if(coupon.type === 'percent') {
-      O.couponDiscount = Math.round(subtotal * (coupon.value||0) / 100);
-      discountLabel = '🎉 קופון הופעל! הנחה של ' + (coupon.value||0) + '%';
     }
     statusEl.style.background = 'rgba(78,203,113,0.1)';
     statusEl.style.color = 'var(--green)';
