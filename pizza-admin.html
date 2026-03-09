@@ -862,14 +862,14 @@ function renderSchedule(){
   monthDays.forEach(d=>{
     const isB=blockedDays.includes(d.label);
     const hasOv=window._hourOverrides&&window._hourOverrides[d.label];
-    const isSat=d.dayOfWeek===6;
     const isSel=selectedDays.has(d.label);
     const el=document.createElement('div');
-    el.className='cal-day'+(isB?' blocked':'')+(isSat?' sat':'')+(isSel?' selected-day':'');
+    el.className='cal-day'+(isB?' blocked':'')+(isSel?' selected-day':'');
     if(isB) el.innerHTML+='<div class="cal-blocked-tag">חסום</div>';
     if(hasOv&&!isB) el.innerHTML+='<div class="cal-blocked-tag" style="background:rgba(37,99,235,0.2);color:var(--blue);">⚡</div>';
     el.innerHTML+=`<div class="cal-day-num">${d.num}</div>`;
-    const isPast = d.date < new Date(new Date().setHours(0,0,0,0));
+    const today = new Date(); today.setHours(0,0,0,0);
+    const isPast = d.date < today;
     if(isPast) el.classList.add('past');
     if(!isPast) el.addEventListener('click',()=>toggleDaySelect(d.label));
     grid.appendChild(el);
@@ -934,7 +934,7 @@ function clearSelection() {
 function selectWholeMonth() {
   const mo=parseInt(document.getElementById('sel-month-pick').value);
   const yr=parseInt(document.getElementById('sel-year-pick').value);
-  getMonthDays(yr,mo).filter(d=>d.dayOfWeek!==6).forEach(d=>selectedDays.add(d.label));
+  getMonthDays(yr,mo).forEach(d=>selectedDays.add(d.label));
   renderSchedule();
 }
 
