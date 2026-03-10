@@ -103,6 +103,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .abtn:hover{transform:translateY(-1px);}
 .ab-confirm{background:rgba(59,130,246,0.18);color:#60a5fa;border-color:rgba(59,130,246,0.28);}
 .ab-fire{background:rgba(255,107,26,0.2);color:#ff6b1a;border-color:rgba(255,107,26,0.4);font-weight:900;}
+.kitchen-auto .ab-fire{opacity:0.3;pointer-events:none;}
 .ab-send{background:rgba(255,107,43,0.18);color:var(--orange);border-color:rgba(255,107,43,0.28);}
 .ab-done{background:rgba(78,203,113,0.16);color:var(--green);border-color:rgba(78,203,113,0.26);}
 .ab-cancel{background:rgba(255,68,85,0.13);color:var(--red);border-color:rgba(255,68,85,0.23);}
@@ -243,6 +244,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div class="topbar">
     <div class="topbar-inner">
       <div class="topbar-logo">🍕 ניהול</div>
+      <button id="kitchen-mode-btn" onclick="toggleKitchenMode()" style="padding:5px 10px;border-radius:20px;border:1.5px solid rgba(255,107,26,0.4);background:rgba(255,107,26,0.1);color:#ff6b1a;font-family:'Heebo',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 FIRE חובה</button>
+      <button id="kitchen-mode-btn" onclick="toggleKitchenMode()" style="padding:5px 10px;border-radius:20px;border:1.5px solid rgba(255,107,26,0.4);background:rgba(255,107,26,0.1);color:#ff6b1a;font-family:'Heebo',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 FIRE חובה</button>
       <div class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('orders',this)">📋 היום</button>
         <button class="tab-btn" onclick="switchTab('history',this)">📊 היסטוריה</button>
@@ -287,11 +290,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div class="view" id="view-history">
     <div class="main">
       <div class="history-controls">
-        <div class="hc-group"><div class="hc-label">מתאריך</div><input type="date" class="hc-input" id="h-from"/></div>
-        <div class="hc-group"><div class="hc-label">עד תאריך</div><input type="date" class="hc-input" id="h-to"/></div>
+        <div class="hc-group"><div class="hc-label">בחר יום</div><input type="date" class="hc-input" id="h-date"/></div>
         <button class="hc-btn" onclick="loadHistory()">🔍 הצג</button>
+        <button class="hc-btn" style="background:transparent;color:var(--muted);border:1px solid var(--border);" onclick="loadHistoryToday()">📅 היום</button>
       </div>
-      <div id="hist-content"><div class="empty"><div class="empty-emoji">📊</div><p>בחר טווח תאריכים ולחץ הצג</p></div></div>
+      <div id="hist-content"><div class="empty"><div class="empty-emoji">📊</div><p>בחר יום ולחץ הצג</p></div></div>
     </div>
   </div>
 
@@ -676,7 +679,7 @@ function switchTab(tab,btn){
   document.getElementById('view-'+tab).classList.add('show');
   if(tab==='schedule') renderSchedule();
   if(tab==='coupons') loadCoupons();
-  if(tab==='history') initHistoryDates();
+  if(tab==='history') { const t=new Date().toISOString().split('T')[0]; document.getElementById('h-date').value=t; loadHistory(); }
 }
 
 // ══ TODAY LABEL ══
@@ -695,6 +698,26 @@ function sortDateLabels(labels){
   return ordered;
 }
 
+let kitchenAutoMode = false;
+
+function toggleKitchenMode() {
+  kitchenAutoMode = !kitchenAutoMode;
+  const btn = document.getElementById('kitchen-mode-btn');
+  if(kitchenAutoMode) {
+    btn.textContent = '🟢 הכל אוטו';
+    btn.style.background = 'rgba(34,197,94,0.12)';
+    btn.style.borderColor = 'rgba(34,197,94,0.4)';
+    btn.style.color = '#16a34a';
+    toast('🟢 מצב אוטו — כל הזמנה נכנסת ישר למטבח');
+  } else {
+    btn.textContent = '🔥 FIRE חובה';
+    btn.style.background = 'rgba(255,107,26,0.1)';
+    btn.style.borderColor = 'rgba(255,107,26,0.4)';
+    btn.style.color = '#ff6b1a';
+    toast('🔥 מצב רגיל — צריך ללחוץ FIRE');
+  }
+}
+
 // ══ REFRESH ══
 async function refresh(){
   try{
@@ -703,8 +726,15 @@ async function refresh(){
       sbGet('/rest/v1/blocked_days?select=date_label'),
       sbGet('/rest/v1/blocked_slots?select=time,max_orders'),
     ]);
+    // Auto-fire in auto mode
+    if(kitchenAutoMode) {
+      const toFire = orders.filter(o => o.status==='new' || o.status==='payment_confirmed');
+      for(const o of toFire) {
+        try { await sbPatch('/rest/v1/pizza_orders?id=eq.'+encodeURIComponent(o.id), {status:'preparing'}); o.status='preparing'; } catch(e){}
+      }
+    }
     allOrders=orders;
-    todayOrders=orders; // now includes all active orders
+    todayOrders=orders;
     blockedDays=bDays.map(r=>r.date_label);
     blockedSlots=bSlots;
     if(bSlots.length>0&&bSlots[0].max_orders) globalMax=bSlots[0].max_orders;
@@ -754,7 +784,7 @@ function renderOrderRow(o){
     </div>
   </div>
   <div class="t-detail" id="${did}">
-    <div class="detail-info">🏠 <span class="detail-addr">${o.address||''}</span> · 📅 ${o.date_label||''} ${o.time||''} · <a href="tel:${o.phone||''}" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none;font-weight:700;background:rgba(37,99,235,0.08);padding:2px 8px;border-radius:20px;">📞 ${o.phone||''}</a> · ${o.pay_method==='cash'?'💵 מזומן':'💳 PayBox'} ₪${o.total||0}</div>
+    <div class="detail-info">🏠 <span class="detail-addr">${o.address||''}</span> · 📅 ${o.date_label||''} ${o.time||''} · <a href="tel:${o.phone||''}" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none;font-weight:700;background:rgba(37,99,235,0.08);padding:2px 8px;border-radius:20px;">📞 ${o.phone||''}</a> <a href="https://wa.me/${(o.phone||'').replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank" onclick="event.stopPropagation()" style="color:#25d366;text-decoration:none;font-weight:700;background:rgba(37,211,102,0.1);padding:2px 8px;border-radius:20px;">💬 וואטסאפ</a> · ${o.pay_method==='cash'?'💵 מזומן':'💳 PayBox'} ₪${o.total||0}</div>
     <div class="pizza-checklist" id="pcl-${did}">${buildPizzaChecklist(o)}</div>
   </div>`;
 }
@@ -869,61 +899,80 @@ function initHistoryDates(){
   if(!document.getElementById('h-to').value) document.getElementById('h-to').value=today;
 }
 
+function loadHistoryToday(){
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('h-date').value=today;
+  loadHistory();
+}
+
 async function loadHistory(){
-  const from=document.getElementById('h-from').value;
-  const to=document.getElementById('h-to').value;
-  if(!from||!to){toast('⚠️ בחר תאריכים');return;}
+  const date=document.getElementById('h-date').value;
+  if(!date){toast('⚠️ בחר תאריך');return;}
   const el=document.getElementById('hist-content');
   el.innerHTML='<div class="loading">⏳ טוען...</div>';
   try{
-    const orders=await sbGet(`/rest/v1/pizza_orders?select=*&created_at=gte.${from}T00:00:00&created_at=lte.${to}T23:59:59&order=created_at.desc`);
-    renderHistory(orders);
+    const orders=await sbGet(`/rest/v1/pizza_orders?select=*&created_at=gte.${date}T00:00:00&created_at=lte.${date}T23:59:59&order=created_at.asc`);
+    renderHistory(orders, date);
   }catch(e){el.innerHTML='<div class="empty"><div class="empty-emoji">⚠️</div><p>שגיאה: '+e.message+'</p></div>';}
 }
 
-function renderHistory(orders){
+function renderHistory(orders, date){
   const el=document.getElementById('hist-content');
-  if(!orders.length){el.innerHTML='<div class="empty"><div class="empty-emoji">📭</div><p>אין הזמנות בטווח זה</p></div>';return;}
+  if(!orders.length){el.innerHTML='<div class="empty"><div class="empty-emoji">📭</div><p>אין הזמנות ביום זה</p></div>';return;}
 
   const active=orders.filter(o=>o.status!=='cancelled');
-  const delivered=orders.filter(o=>o.status==='delivered');
-  const totalRev=delivered.reduce((a,o)=>a+(o.total||0),0);
-  const avgRev=delivered.length?Math.round(totalRev/delivered.length):0;
+  const cancelled=orders.filter(o=>o.status==='cancelled');
 
-  // Pizza counts
+  // Count total pizzas sold
+  let totalPizzas=0;
+  let couponPizzas=0;
   const pizzaCount={};
-  active.forEach(o=>{Object.entries(o.pizzas||{}).forEach(([pid,qty])=>{pizzaCount[pid]=(pizzaCount[pid]||0)+qty;});});
+  const pizzaCouponCount={};
+
+  active.forEach(o=>{
+    const hasCoupon=!!o.coupon_used;
+    Object.entries(o.pizzas||{}).forEach(([pid,v])=>{
+      const qty=typeof v==='object'?(v.qty||0):v;
+      totalPizzas+=qty;
+      pizzaCount[pid]=(pizzaCount[pid]||0)+qty;
+      if(hasCoupon){
+        couponPizzas+=qty;
+        pizzaCouponCount[pid]=(pizzaCouponCount[pid]||0)+qty;
+      }
+    });
+  });
+
+  const paidPizzas=totalPizzas-couponPizzas;
+  const totalRev=active.filter(o=>o.status==='delivered'||o.status==='out_for_delivery'||o.status==='preparing').reduce((a,o)=>a+(o.total||0),0);
   const maxP=Math.max(...Object.values(pizzaCount),1);
 
-  // Day breakdown
-  const dayMap={};
-  active.forEach(o=>{
-    const d=o.date_label||'—';
-    if(!dayMap[d]) dayMap[d]={cnt:0,rev:0};
-    dayMap[d].cnt++;
-    if(o.status==='delivered') dayMap[d].rev+=o.total||0;
-  });
-  const maxD=Math.max(...Object.values(dayMap).map(d=>d.cnt),1);
+  const dateDisp=date?new Date(date).toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'';
 
   el.innerHTML=`
+    <div style="font-size:0.88rem;font-weight:700;color:var(--muted);margin-bottom:12px;text-align:center;">${dateDisp}</div>
+
     <div class="hist-stats">
-      <div class="hist-stat"><div class="hist-stat-n">${orders.length}</div><div class="hist-stat-l">סה״כ הזמנות</div></div>
-      <div class="hist-stat"><div class="hist-stat-n">${delivered.length}</div><div class="hist-stat-l">נמסרו</div></div>
-      <div class="hist-stat"><div class="hist-stat-n">${orders.filter(o=>o.status==='cancelled').length}</div><div class="hist-stat-l">בוטלו</div></div>
+      <div class="hist-stat"><div class="hist-stat-n" style="color:var(--orange)">${totalPizzas}</div><div class="hist-stat-l">🍕 פיצות נמכרו</div></div>
+      <div class="hist-stat"><div class="hist-stat-n" style="color:var(--green)">${paidPizzas}</div><div class="hist-stat-l">💰 בתשלום</div></div>
+      <div class="hist-stat"><div class="hist-stat-n" style="color:var(--blue)">${couponPizzas}</div><div class="hist-stat-l">🎟 בקופון</div></div>
       <div class="hist-stat"><div class="hist-stat-n" style="color:var(--green)">₪${totalRev}</div><div class="hist-stat-l">הכנסות</div></div>
-      <div class="hist-stat"><div class="hist-stat-n" style="color:var(--blue)">₪${avgRev}</div><div class="hist-stat-l">ממוצע להזמנה</div></div>
+      <div class="hist-stat"><div class="hist-stat-n">${active.length}</div><div class="hist-stat-l">הזמנות</div></div>
+      ${cancelled.length?`<div class="hist-stat"><div class="hist-stat-n" style="color:var(--red)">${cancelled.length}</div><div class="hist-stat-l">בוטלו</div></div>`:''}
     </div>
 
     <div class="section-card">
-      <div class="section-title">🍕 מכירות לפי פיצה</div>
+      <div class="section-title">🍕 פיצות לפי סוג</div>
       <div class="pb-grid">
         ${Object.entries(PIZZA_META).map(([pid,meta])=>{
           const cnt=pizzaCount[pid]||0;
+          const coup=pizzaCouponCount[pid]||0;
+          const paid=cnt-coup;
+          if(!cnt) return '';
           return `<div class="pb-item">
             <div class="pb-icon">${meta.icon}</div>
             <div style="flex:1">
               <div class="pb-name">${meta.name}</div>
-              <div class="pb-count">${cnt} <span class="pb-sub">יח׳</span></div>
+              <div class="pb-count">${cnt} <span class="pb-sub">יח׳</span> ${coup?`<span style="font-size:0.7rem;color:var(--blue);">(${coup} קופון · ${paid} תשלום)</span>`:''}</div>
               <div class="pb-bar-wrap"><div class="pb-bar" style="width:${Math.round(cnt/maxP*100)}%"></div></div>
             </div>
           </div>`;
@@ -932,13 +981,16 @@ function renderHistory(orders){
     </div>
 
     <div class="section-card">
-      <div class="section-title">📅 פירוט לפי יום</div>
-      ${Object.entries(dayMap).map(([day,d])=>`
-        <div class="day-row">
-          <span class="day-label">${day}</span>
-          <div class="day-bar-wrap"><div class="day-bar" style="width:${Math.round(d.cnt/maxD*100)}%"></div></div>
-          <span class="day-cnt">${d.cnt} הזמנות</span>
-          <span class="day-rev">₪${d.rev}</span>
+      <div class="section-title">📋 הזמנות היום</div>
+      ${active.map(o=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+          <div style="font-size:0.88rem;font-weight:700;color:var(--orange);min-width:48px;">${o.time||''}</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:0.85rem;">${o.name||''}</div>
+            <div style="font-size:0.72rem;color:var(--muted);">${o.pizza_lines||''} ${o.coupon_used?'· 🎟 '+o.coupon_used:''}</div>
+          </div>
+          <div style="font-size:0.82rem;font-weight:700;">₪${o.total||0}</div>
+          <span class="sbadge s-${o.status}" style="font-size:0.65rem;">${S_LABEL[o.status]||o.status}</span>
         </div>`).join('')}
     </div>`;
 }
