@@ -1201,6 +1201,7 @@ async function saveDailyLimit() {
     const st = document.getElementById('daily-limit-status');
     st.style.display='block'; setTimeout(()=>st.style.display='none',2000);
     toast('✅ מכסה נשמרה: '+limit+' פיצות');
+    updateDailyCount();
   } catch(e) { toast('❌ '+e.message); }
 }
 
