@@ -177,7 +177,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .act-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
 .coup-type-btn{padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-family:'Heebo',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;color:var(--text);transition:all 0.15s;}
 .coup-type-btn.active{border-color:var(--orange);background:rgba(232,112,106,0.1);color:var(--orange);}
-.cal-day.selected-day{background:rgba(245,197,24,0.25);border-color:var(--orange2) !important;}
+.cal-day.selected-day{background:rgba(45,42,36,0.12);border-color:var(--text) !important;}
+.cal-day.selected-day .cal-day-num{color:var(--text);font-weight:900;}
 @media(max-width:700px){.schedule-grid{grid-template-columns:1fr;}}
 .sch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .sch-card-head{padding:14px 16px;background:var(--surface2);border-bottom:1px solid var(--border);}
@@ -423,6 +424,46 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
                 <button onclick="selectWholeMonth()" class="act-btn act-blue">סמן</button>
               </div>
               <div id="action-status" style="font-size:0.75rem;display:none;"></div>
+            </div>
+          </div>
+
+          <!-- Day info panel -->
+          <div class="sch-card" id="day-info-panel" style="display:none;border:2px solid var(--orange);margin-bottom:0;">
+            <div class="sch-card-head" style="background:rgba(232,112,106,0.08);display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div class="sch-card-title" id="day-info-title">📅 פרטי יום</div>
+                <div class="sch-card-sub" id="day-info-sub"></div>
+              </div>
+              <button onclick="closeDayInfo()" style="background:none;border:none;font-size:1rem;cursor:pointer;color:var(--muted);">✕</button>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
+              <!-- Status row -->
+              <div id="day-info-status-row" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+              <!-- Pizza count -->
+              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                <div style="flex:1;background:rgba(232,112,106,0.06);border-radius:10px;padding:10px 14px;text-align:center;">
+                  <div style="font-size:1.8rem;font-weight:900;color:var(--orange);" id="day-info-sold">—</div>
+                  <div style="font-size:0.65rem;color:var(--muted);font-weight:700;">פיצות הוזמנו</div>
+                </div>
+                <div style="flex:1;background:rgba(34,197,94,0.06);border-radius:10px;padding:10px 14px;text-align:center;">
+                  <div style="font-size:1.8rem;font-weight:900;color:var(--green);" id="day-info-remaining">—</div>
+                  <div style="font-size:0.65rem;color:var(--muted);font-weight:700;">נותרו</div>
+                </div>
+                <div style="flex:1;background:rgba(37,99,235,0.06);border-radius:10px;padding:10px 14px;text-align:center;">
+                  <div style="font-size:1.8rem;font-weight:900;color:var(--blue);" id="day-info-limit">—</div>
+                  <div style="font-size:0.65rem;color:var(--muted);font-weight:700;">מכסה</div>
+                </div>
+              </div>
+              <!-- Hours -->
+              <div style="font-size:0.82rem;color:var(--text);" id="day-info-hours"></div>
+              <!-- Quick actions -->
+              <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:10px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:0.72rem;color:var(--muted);font-weight:700;">שנה מכסה:</span>
+                  <input type="number" id="day-info-limit-input" class="hsel" min="1" max="200" style="width:65px;text-align:center;font-weight:900;" placeholder="20"/>
+                  <button onclick="saveDayLimit()" style="padding:5px 12px;background:var(--orange);border:none;border-radius:7px;color:white;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">שמור</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1113,6 +1154,67 @@ function toggleDaySelect(label) {
   selectedViewDay = label;
   renderSchedule();
   renderSlots();
+  updateDayInfoPanel(label);
+}
+
+function closeDayInfo() {
+  document.getElementById('day-info-panel').style.display = 'none';
+}
+
+async function saveDayLimit() {
+  if(!selectedViewDay) return;
+  const lim = parseInt(document.getElementById('day-info-limit-input').value);
+  if(!lim||lim<1){toast('⚠️ הכנס מספר');return;}
+  const rows = await sbGet(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(selectedViewDay)}&select=id`);
+  if(rows&&rows.length>0) await sbPatch(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(selectedViewDay)}`,{daily_limit:lim});
+  else await sbPost('/rest/v1/hours_settings',{date_label:selectedViewDay,daily_limit:lim});
+  if(!window._hourOverrides) window._hourOverrides={};
+  if(!window._hourOverrides[selectedViewDay]) window._hourOverrides[selectedViewDay]={};
+  window._hourOverrides[selectedViewDay].daily_limit = lim;
+  toast('✅ מכסה של '+lim+' כדורים נשמרה');
+  renderSchedule();
+  updateDayInfoPanel(selectedViewDay);
+}
+
+async function updateDayInfoPanel(label) {
+  const panel = document.getElementById('day-info-panel');
+  panel.style.display = 'block';
+  document.getElementById('day-info-title').textContent = '📅 ' + label;
+
+  // Get override info
+  const ov = window._hourOverrides && window._hourOverrides[label];
+  const isBlocked = blockedDays.includes(label);
+  
+  // Status
+  const statusRow = document.getElementById('day-info-status-row');
+  let statuses = [];
+  if(isBlocked) statuses.push('<span style="background:rgba(255,68,85,0.12);color:var(--red);padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;">🔴 חסום</span>');
+  else statuses.push('<span style="background:rgba(34,197,94,0.12);color:var(--green);padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;">🟢 פתוח</span>');
+  if(ov&&(ov.start_hour||ov.end_hour)) statuses.push('<span style="background:rgba(37,99,235,0.1);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;">⚡ שעות מיוחדות</span>');
+  statusRow.innerHTML = statuses.join('');
+
+  // Hours
+  const defStart = parseInt(document.getElementById('def-start')?.value||18);
+  const defEnd = parseInt(document.getElementById('def-end')?.value||22);
+  const startH = ov?.start_hour || defStart;
+  const endH = ov?.end_hour || defEnd;
+  document.getElementById('day-info-hours').innerHTML = `⏰ שעות: <strong>${String(startH).padStart(2,'0')}:00 — ${String(endH).padStart(2,'0')}:00</strong>`;
+
+  // Limit
+  const globalLim = parseInt(document.getElementById('daily-limit-input')?.value)||20;
+  const dayLim = ov?.daily_limit || globalLim;
+  document.getElementById('day-info-limit').textContent = dayLim;
+  document.getElementById('day-info-limit-input').value = ov?.daily_limit || '';
+  document.getElementById('day-info-sub').textContent = ov?.daily_limit ? '🍕 מכסה מיוחדת ליום זה' : '🍕 מכסת ברירת מחדל: '+globalLim;
+
+  // Count sold for this day
+  const dayOrders = allOrders.filter(o => o.date_label===label && o.status!=='cancelled');
+  let sold = 0;
+  dayOrders.forEach(o => { if(o.pizzas) Object.values(o.pizzas).forEach(v => { sold += typeof v==='object'?(v.qty||0):v; }); });
+  const remaining = Math.max(0, dayLim - sold);
+  document.getElementById('day-info-sold').textContent = sold;
+  document.getElementById('day-info-remaining').textContent = remaining;
+  document.getElementById('day-info-remaining').style.color = remaining <= 3 ? 'var(--red)' : remaining <= 7 ? 'var(--orange)' : 'var(--green)';
 }
 
 function updateSelLabel() {
