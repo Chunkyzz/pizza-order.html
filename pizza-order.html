@@ -323,7 +323,13 @@ input::placeholder{color:#3a3830;}
   <div class="wrap" style="padding-bottom:100px">
     <div class="hero" style="padding-bottom:16px"><h1>בחר <em>פיצות</em></h1><p>₪40 לפיצה · תוספות ₪5 כל אחת</p></div>
     <div class="pizza-grid" id="pizza-grid"></div>
-    <div id="pizza-next" style="margin-top:14px;display:none"><button class="btn btn-primary" onclick="goTo(5)">המשך לתשלום →</button></div>
+    <div id="pizza-next" style="margin-top:14px;display:none">
+      <div style="background:rgba(255,255,255,0.7);border:1.5px solid var(--border);border-radius:13px;padding:14px 16px;margin-bottom:12px;">
+        <label style="font-size:0.78rem;font-weight:700;color:var(--muted);display:block;margin-bottom:7px;">💬 הערות להזמנה <span style="font-weight:400;font-size:0.72rem;">(אופציונלי)</span></label>
+        <textarea id="order-notes" rows="2" placeholder="אלרגיה? טבעוני? משהו חשוב לדעת? 🍕" oninput="O.notes=this.value.trim()" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-family:'Heebo',sans-serif;font-size:0.85rem;resize:none;background:white;color:var(--text);direction:rtl;"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="goTo(5)">המשך לתשלום →</button>
+    </div>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="goTo(3)">← חזרה</button>
   </div>
 </div>
@@ -513,7 +519,7 @@ async function checkRestaurantOpen() {
 checkRestaurantOpen();
 loadActiveCoupons();
 
-const O = {name:'',phone:'',address:'',date:null,dateLabel:'',time:'',pizzas:{},payMethod:'',couponApplied:false,couponDiscount:0,customerId:null};
+const O = {name:'',phone:'',address:'',date:null,dateLabel:'',time:'',pizzas:{},payMethod:'',notes:'',couponApplied:false,couponDiscount:0,customerId:null};
 let curStep = 1;
 let expandedPizza = null; // which pizza toppings panel is open
 
@@ -977,7 +983,8 @@ async function finalConfirm(method) {
       id,name:O.name,phone:O.phone,address:O.address,
       date_label:O.dateLabel,time:O.time,pizza_lines:pizzaLines,
       pizzas:pizzasData,total:totPrice(),pay_method:method,
-      status:'new',coupon_used:O.couponApplied?(O.couponCode||null):null
+      status:'new',coupon_used:O.couponApplied?(O.couponCode||null):null,
+      notes:O.notes||null
     });
     if(O.couponApplied) {
       await sbPost('/rest/v1/coupon_uses',{phone:O.phone,coupon_code:O.couponCode,discount_amount:O.couponDiscount});
@@ -998,6 +1005,19 @@ async function finalConfirm(method) {
   }
 }
 
+function refreshNotesSummary() {
+  const card = document.getElementById('notes-summary-card');
+  const txt = document.getElementById('notes-summary-text');
+  if(card && txt) {
+    if(O.notes && O.notes.trim()) {
+      txt.textContent = O.notes.trim();
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  }
+}
+
 function showStatus(type,msg){const b=document.getElementById('status-box');b.className='status-box '+type;b.style.display='block';document.getElementById('status-txt').textContent=msg;}
 
 function showSuccess(ord) {
@@ -1014,7 +1034,8 @@ function showSuccess(ord) {
 }
 
 function updProg(n){for(let i=1;i<=5;i++){const el=document.getElementById('pi'+i);if(!el)continue;el.classList.remove('active','done');if(i<n)el.classList.add('done');if(i===n)el.classList.add('active');}for(let i=1;i<=4;i++)document.getElementById('pl'+i)?.classList.toggle('done',i<n);}
-function goTo(n){document.getElementById('panel-'+curStep)?.classList.remove('active');document.getElementById('panel-'+n)?.classList.add('active');updProg(Math.min(n,5));curStep=n;window.scrollTo({top:0,behavior:'smooth'});if(n===2)renderDays();if(n===3)renderTimes();if(n===4)renderPizzas();if(n===5)renderSummary();}
+function goTo(n){
+  if(n===5) setTimeout(refreshNotesSummary, 50);document.getElementById('panel-'+curStep)?.classList.remove('active');document.getElementById('panel-'+n)?.classList.add('active');updProg(Math.min(n,5));curStep=n;window.scrollTo({top:0,behavior:'smooth'});if(n===2)renderDays();if(n===3)renderTimes();if(n===4)renderPizzas();if(n===5)renderSummary();}
 async function step1Phone() {
   const phone = document.getElementById('f-phone').value.trim();
   if(!phone || phone.length < 9) { toast('⚠️ נא להזין מספר טלפון תקין'); return; }
@@ -1092,7 +1113,7 @@ function backToPhone() {
 }
 
 function step1() { step1Phone(); }
-function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.couponApplied=false;O.couponDiscount=0;O.couponCode=null;O.couponType=null;O.customerId=null;document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
+function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.notes='';O.couponApplied=false;O.couponDiscount=0;O.couponCode=null;O.couponType=null;O.customerId=null;const nt=document.getElementById('order-notes');if(nt)nt.value='';document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
   <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.9</div>

@@ -819,6 +819,7 @@ function renderOrderRow(o){
   </div>
   <div class="t-detail" id="${did}">
     <div class="detail-info">🏠 <span class="detail-addr">${o.address||''}</span> · 📅 ${o.date_label||''} ${o.time||''} · <a href="tel:${o.phone||''}" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none;font-weight:700;background:rgba(37,99,235,0.08);padding:2px 8px;border-radius:20px;">📞 ${o.phone||''}</a> <a href="https://wa.me/${(o.phone||'').replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank" onclick="event.stopPropagation()" style="color:#25d366;text-decoration:none;font-weight:700;background:rgba(37,211,102,0.1);padding:2px 8px;border-radius:20px;">💬 וואטסאפ</a> · ${o.pay_method==='cash'?'💵 מזומן':'💳 PayBox'} ₪${o.total||0}</div>
+    ${o.notes?`<div style="margin-top:6px;background:rgba(255,251,230,0.9);border:1.5px solid rgba(245,197,24,0.4);border-radius:8px;padding:7px 12px;font-size:0.82rem;"><span style="font-weight:700;color:var(--muted);">💬 הערות:</span> ${o.notes}</div>`:''}
     <div class="pizza-checklist" id="pcl-${did}">${buildPizzaChecklist(o)}</div>
   </div>`;
 }
