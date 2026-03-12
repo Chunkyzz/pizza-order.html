@@ -196,6 +196,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .cal-day-name{font-size:0.57rem;color:var(--muted);margin-bottom:2px;}
 .cal-day-num{font-size:1.1rem;font-weight:900;line-height:1;}
 .cal-day-month{font-size:0.57rem;color:var(--muted);margin-top:1px;}
+.cal-limit-tag{font-size:0.55rem;font-weight:800;color:var(--orange);background:rgba(232,112,106,0.15);border-radius:4px;padding:1px 3px;margin-top:2px;display:inline-block;}
 .cal-legend{display:flex;gap:12px;margin-top:10px;font-size:0.65rem;color:var(--muted);}
 .cal-legend-dot{width:7px;height:7px;border-radius:2px;display:inline-block;margin-left:3px;}
 .slots-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
@@ -1057,6 +1058,8 @@ function renderSchedule(){
     if(isB) el.innerHTML+='<div class="cal-blocked-tag">חסום</div>';
     if(hasOv&&!isB) el.innerHTML+='<div class="cal-blocked-tag" style="background:rgba(37,99,235,0.2);color:var(--blue);">⚡</div>';
     el.innerHTML+=`<div class="cal-day-num">${d.num}</div>`;
+    const dayLim = hasOv&&window._hourOverrides[d.label]?.daily_limit;
+    if(dayLim) el.innerHTML+=`<div class="cal-limit-tag">🍕${dayLim}</div>`;
     const today = new Date(); today.setHours(0,0,0,0);
     const isPast = d.date < today;
     if(isPast) el.classList.add('past');
@@ -1077,7 +1080,10 @@ function renderSlots() {
   if(selectedViewDay) {
     const ov = window._hourOverrides && window._hourOverrides[selectedViewDay];
     if(ov) { startH=ov.start_hour; endH=ov.end_hour; }
-    if(label) label.textContent = selectedViewDay + (ov ? ' ⚡ שעות מיוחדות' : ' · שעות ברירת מחדל');
+    if(label) {
+      const limText = ov?.daily_limit ? ' · 🍕'+ov.daily_limit+' כדורים' : '';
+      label.textContent = selectedViewDay + (ov ? ' ⚡ שעות מיוחדות' : ' · שעות ברירת מחדל') + limText;
+    }
   } else {
     if(label) label.textContent = 'לחץ על יום בלוח לראות שעותיו';
   }
