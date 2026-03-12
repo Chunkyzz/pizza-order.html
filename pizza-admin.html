@@ -320,26 +320,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       </div>
 
       <!-- Calendar + action panel -->
-      <!-- Daily pizza limit -->
-      <div class="sch-card" style="margin-bottom:14px">
-        <div class="sch-card-head"><div class="sch-card-title">🍕 מכסת פיצות יומית</div><div class="sch-card-sub">מספר כדורי בצק מוכנים — כשנגמר הלקוחות רואים הודעה</div></div>
-        <div style="padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--muted);">כדורי בצק ליום:</label>
-            <input type="number" id="daily-limit-input" min="1" max="200" value="20" class="hsel" style="width:70px;text-align:center;font-weight:900;font-size:1rem;"/>
-          </div>
-          <button onclick="saveDailyLimit()" style="padding:7px 16px;background:var(--orange);border:none;border-radius:8px;color:white;font-family:'Heebo',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;">שמור</button>
-          <div id="daily-limit-status" style="font-size:0.75rem;color:var(--green);display:none;">✅ נשמר</div>
-          <div style="margin-right:auto;font-size:0.8rem;color:var(--muted);display:flex;gap:12px;align-items:center;">היום הוזמנו: <strong id="daily-ordered-count" style="color:var(--text);">—</strong> פיצות <span id="daily-remaining-count" style="font-weight:700;"></span></div>
-        </div>
-        <div style="padding:0 16px 12px;display:flex;gap:8px;flex-wrap:wrap;">
-          <div style="font-size:0.72rem;color:var(--muted);">הודעת סגירה ללקוחות:</div>
-          <input type="text" id="sold-out-msg" class="hsel" style="flex:1;min-width:200px;font-size:0.82rem;" placeholder="נגמר הבצק להיום! נתראה מחר 🍕" value="נגמר הבצק להיום! נתראה מחר 🍕"/>
-          <div style="font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:6px;">
-            וואטסאפ לשאלות:
-            <input type="text" id="wa-number" class="hsel" style="width:130px;font-size:0.82rem;" placeholder="972501234567" dir="ltr"/>
-          </div>
-        </div>
+      <!-- Hidden fields for sold-out msg and wa (used by order page logic) -->
+      <input type="hidden" id="daily-limit-input" value="20"/>
+      <input type="hidden" id="daily-limit-status"/>
+      <input type="hidden" id="sold-out-msg" value="נגמר הבצק להיום! נתראה מחר 🍕"/>
+      <input type="hidden" id="wa-number" value=""/>
+      <div style="display:flex;gap:12px;align-items:center;padding:10px 4px 6px;font-size:0.82rem;color:var(--muted);">
+        היום הוזמנו: <strong id="daily-ordered-count" style="color:var(--text);">—</strong> פיצות <span id="daily-remaining-count" style="font-weight:700;"></span>
       </div>
 
       <div class="schedule-grid">
@@ -403,17 +390,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
                   <button onclick="applyToSelected('clear-hours')" class="act-btn act-ghost">נקה עקיפה</button>
                 </div>
               </div>
-              <!-- Pizza limit per day -->
-              <div style="border-top:1px solid var(--border);padding-top:10px;">
-                <div style="font-size:0.72rem;font-weight:700;color:var(--muted);margin-bottom:8px;">🍕 מכסת כדורי בצק לימים אלו:</div>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                  <input type="number" id="sel-daily-limit" class="hsel" min="1" max="200" placeholder="20" style="width:70px;text-align:center;font-weight:900;font-size:1rem;"/>
-                  <span style="font-size:0.72rem;color:var(--muted);">כדורים</span>
-                  <button onclick="applyToSelected('limit')" class="act-btn act-blue">🍕 הגדר מכסה</button>
-                  <button onclick="applyToSelected('clear-limit')" class="act-btn act-ghost">נקה מכסה</button>
-                </div>
-                <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;">ריק = יוצג מכסת ברירת המחדל</div>
-              </div>
+
               <!-- Also: month override shortcut -->
               <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <span style="font-size:0.72rem;color:var(--muted);font-weight:700;">סמן חודש שלם:</span>
@@ -1162,18 +1139,25 @@ function closeDayInfo() {
 }
 
 async function saveDayLimit() {
-  if(!selectedViewDay) return;
+  if(!selectedViewDay) { toast('⚠️ לחץ על יום קודם'); return; }
   const lim = parseInt(document.getElementById('day-info-limit-input').value);
   if(!lim||lim<1){toast('⚠️ הכנס מספר');return;}
-  const rows = await sbGet(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(selectedViewDay)}&select=id`);
-  if(rows&&rows.length>0) await sbPatch(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(selectedViewDay)}`,{daily_limit:lim});
-  else await sbPost('/rest/v1/hours_settings',{date_label:selectedViewDay,daily_limit:lim});
-  if(!window._hourOverrides) window._hourOverrides={};
-  if(!window._hourOverrides[selectedViewDay]) window._hourOverrides[selectedViewDay]={};
-  window._hourOverrides[selectedViewDay].daily_limit = lim;
-  toast('✅ מכסה של '+lim+' כדורים נשמרה');
-  renderSchedule();
-  updateDayInfoPanel(selectedViewDay);
+  try {
+    const rows = await sbGet(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(selectedViewDay)}&select=id,date_label`);
+    if(rows&&rows.length>0) {
+      await sbPatch(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(selectedViewDay)}`,{daily_limit:lim});
+    } else {
+      await sbPost('/rest/v1/hours_settings',{date_label:selectedViewDay,daily_limit:lim});
+    }
+    if(!window._hourOverrides) window._hourOverrides={};
+    if(!window._hourOverrides[selectedViewDay]) window._hourOverrides[selectedViewDay]={date_label:selectedViewDay};
+    window._hourOverrides[selectedViewDay].daily_limit = lim;
+    toast('✅ מכסה של '+lim+' כדורים נשמרה ל-'+selectedViewDay);
+    renderSchedule();
+    updateDayInfoPanel(selectedViewDay);
+  } catch(e) {
+    toast('❌ שגיאה: '+e.message);
+  }
 }
 
 async function updateDayInfoPanel(label) {
