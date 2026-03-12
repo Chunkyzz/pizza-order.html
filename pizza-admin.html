@@ -401,6 +401,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
                   <button onclick="applyToSelected('clear-hours')" class="act-btn act-ghost">נקה עקיפה</button>
                 </div>
               </div>
+              <!-- Pizza limit per day -->
+              <div style="border-top:1px solid var(--border);padding-top:10px;">
+                <div style="font-size:0.72rem;font-weight:700;color:var(--muted);margin-bottom:8px;">🍕 מכסת כדורי בצק לימים אלו:</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                  <input type="number" id="sel-daily-limit" class="hsel" min="1" max="200" placeholder="20" style="width:70px;text-align:center;font-weight:900;font-size:1rem;"/>
+                  <span style="font-size:0.72rem;color:var(--muted);">כדורים</span>
+                  <button onclick="applyToSelected('limit')" class="act-btn act-blue">🍕 הגדר מכסה</button>
+                  <button onclick="applyToSelected('clear-limit')" class="act-btn act-ghost">נקה מכסה</button>
+                </div>
+                <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;">ריק = יוצג מכסת ברירת המחדל</div>
+              </div>
               <!-- Also: month override shortcut -->
               <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <span style="font-size:0.72rem;color:var(--muted);font-weight:700;">סמן חודש שלם:</span>
@@ -1150,6 +1161,25 @@ async function applyToSelected(action) {
         if(window._hourOverrides) delete window._hourOverrides[label];
       }
       st.style.color='var(--orange)'; st.textContent='🗑 נוקו שעות מיוחדות מ-'+labels.length+' ימים';
+    } else if(action==='limit') {
+      const lim = parseInt(document.getElementById('sel-daily-limit').value);
+      if(!lim||lim<1){toast('⚠️ הכנס מספר כדורים');return;}
+      for(const label of labels) {
+        const rows=await sbGet(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(label)}&select=id`);
+        if(rows&&rows.length>0) await sbPatch(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(label)}`,{daily_limit:lim});
+        else await sbPost('/rest/v1/hours_settings',{date_label:label,daily_limit:lim});
+        if(!window._hourOverrides) window._hourOverrides={};
+        if(!window._hourOverrides[label]) window._hourOverrides[label]={};
+        window._hourOverrides[label].daily_limit=lim;
+      }
+      st.style.color='var(--orange)'; st.textContent='🍕 מכסה של '+lim+' כדורים הוגדרה ל-'+labels.length+' ימים';
+    } else if(action==='clear-limit') {
+      for(const label of labels) {
+        const rows=await sbGet(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(label)}&select=id`);
+        if(rows&&rows.length>0) await sbPatch(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(label)}`,{daily_limit:null});
+        if(window._hourOverrides&&window._hourOverrides[label]) delete window._hourOverrides[label].daily_limit;
+      }
+      st.style.color='var(--orange)'; st.textContent='🗑 נוקתה מכסה מ-'+labels.length+' ימים';
     }
     selectedDays.clear();
     renderSchedule();
@@ -1220,7 +1250,7 @@ async function loadDailyLimit() {
   updateDailyCount();
 }
 
-function updateDailyCount() {
+async function updateDailyCount() {
   try {
     const today = new Date();
     const ns=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
@@ -1230,15 +1260,19 @@ function updateDailyCount() {
     todayOrders.forEach(o => {
       if(o.pizzas) Object.values(o.pizzas).forEach(v => { total += typeof v==='object' ? (v.qty||0) : v; });
     });
+    // Get per-day limit from hours_settings, fallback to global
+    let limit = parseInt(document.getElementById('daily-limit-input')?.value)||20;
+    try {
+      const rows = await sbGet(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(todayLabel)}&select=daily_limit`);
+      if(rows&&rows.length>0&&rows[0].daily_limit) limit = rows[0].daily_limit;
+    } catch(e) {}
+    const remaining = limit - total;
     const el = document.getElementById('daily-ordered-count');
     if(el) {
-      const limit = parseInt(document.getElementById('daily-limit-input')?.value)||20;
-      const remaining = limit - total;
       el.textContent = total;
       el.style.color = remaining <= 3 ? 'var(--red)' : remaining <= 7 ? 'var(--orange)' : 'var(--green)';
-      // Update remaining display
       const rem = document.getElementById('daily-remaining-count');
-      if(rem) { rem.textContent = 'נותרו: '+Math.max(0,remaining); rem.style.color = el.style.color; }
+      if(rem) { rem.textContent = 'נותרו: '+Math.max(0,remaining)+' מתוך '+limit; rem.style.color = el.style.color; }
     }
   } catch(e) {}
 }

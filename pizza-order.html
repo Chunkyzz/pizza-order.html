@@ -253,7 +253,19 @@ input::placeholder{color:#3a3830;}
           <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">מצאנו את הפרטים שלך</div>
         </div>
         <div class="sec-t">פרטי משלוח</div>
-        <div class="sum-row"><span class="sk">שם</span><span class="sv" id="s1-ret-name"></span></div>
+        <div class="sum-row" style="align-items:flex-start">
+          <span class="sk">שם</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:1">
+            <span class="sv" id="s1-ret-name"></span>
+            <button onclick="toggleNameEdit()" style="background:none;border:none;font-size:0.72rem;color:var(--orange);cursor:pointer;font-family:'Heebo',sans-serif;font-weight:700;" id="s1-edit-name-btn">✏️ שנה שם</button>
+          </div>
+        </div>
+        <div id="s1-name-edit" style="display:none;margin-top:4px;margin-bottom:8px">
+          <div class="field" style="margin-bottom:0">
+            <label>שם למשלוח זה</label>
+            <input type="text" id="f-name-override" placeholder="שם מלא" autocomplete="name"/>
+          </div>
+        </div>
         <div class="sum-row"><span class="sk">טלפון</span><span class="sv" dir="ltr" id="s1-ret-phone"></span></div>
         <div class="sum-row" style="border:none;align-items:flex-start">
           <span class="sk">כתובת</span>
@@ -455,27 +467,45 @@ async function checkRestaurantOpen() {
       document.getElementById('restaurant-closed').style.display = 'flex';
       return;
     }
-    // Check daily limit
-    if(settingsRows && settingsRows.length>0) {
+    // Check daily limit — per-day from hours_settings, fallback to global
+    const ns=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+    const today = new Date();
+    const todayLabel = 'יום '+ns[today.getDay()]+', '+today.getDate()+' '+today.toLocaleDateString('he-IL',{month:'short'});
+    
+    let dailyLimit = null;
+    let soldOutMsg = 'נגמר הבצק להיום! 🍕';
+    let waNumber = '';
+
+    // Check per-day limit first
+    const dayRows = await fetch(SB_URL+'/rest/v1/hours_settings?date_label=eq.'+encodeURIComponent(todayLabel)+'&select=daily_limit',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json());
+    if(dayRows&&dayRows.length>0&&dayRows[0].daily_limit) {
+      dailyLimit = dayRows[0].daily_limit;
+    }
+    // Fallback to global settings
+    if(!dailyLimit && settingsRows && settingsRows.length>0) {
       const s = settingsRows[0];
-      if(s.daily_limit) {
-        // Count today's pizza orders
-        const ns=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
-        const today = new Date();
-        const todayLabel = 'יום '+ns[today.getDay()]+', '+today.getDate()+' '+today.toLocaleDateString('he-IL',{month:'short'});
-        const orders = await fetch(SB_URL+'/rest/v1/pizza_orders?date_label=eq.'+encodeURIComponent(todayLabel)+'&status=neq.cancelled&select=pizzas',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json());
-        let total=0;
-        orders.forEach(o=>{if(o.pizzas) Object.values(o.pizzas).forEach(v=>{total+=typeof v==='object'?(v.qty||0):v;});});
-        if(total >= s.daily_limit) {
-          document.getElementById('sold-out-msg-display').textContent = s.sold_out_msg || 'נגמר הבצק להיום! 🍕';
-          if(s.wa_number) {
-            const waEl = document.getElementById('sold-out-wa');
-            const waLink = document.getElementById('sold-out-wa-link');
-            waEl.style.display='block';
-            waLink.href = 'https://wa.me/'+s.wa_number;
-          }
-          document.getElementById('sold-out-screen').style.display='flex';
+      if(s.daily_limit) dailyLimit = s.daily_limit;
+      if(s.sold_out_msg) soldOutMsg = s.sold_out_msg;
+      if(s.wa_number) waNumber = s.wa_number;
+    }
+    if(settingsRows&&settingsRows.length>0) {
+      if(settingsRows[0].sold_out_msg) soldOutMsg = settingsRows[0].sold_out_msg;
+      if(settingsRows[0].wa_number) waNumber = settingsRows[0].wa_number;
+    }
+
+    if(dailyLimit) {
+      const orders = await fetch(SB_URL+'/rest/v1/pizza_orders?date_label=eq.'+encodeURIComponent(todayLabel)+'&status=neq.cancelled&select=pizzas',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json());
+      let total=0;
+      orders.forEach(o=>{if(o.pizzas) Object.values(o.pizzas).forEach(v=>{total+=typeof v==='object'?(v.qty||0):v;});});
+      if(total >= dailyLimit) {
+        document.getElementById('sold-out-msg-display').textContent = soldOutMsg;
+        if(waNumber) {
+          const waEl = document.getElementById('sold-out-wa');
+          const waLink = document.getElementById('sold-out-wa-link');
+          waEl.style.display='block';
+          waLink.href = 'https://wa.me/'+waNumber;
         }
+        document.getElementById('sold-out-screen').style.display='flex';
       }
     }
   } catch(e) {}
@@ -1028,6 +1058,15 @@ async function step1Register() {
   goTo(2);
 }
 
+function toggleNameEdit() {
+  const el = document.getElementById('s1-name-edit');
+  const btn = document.getElementById('s1-edit-name-btn');
+  const open = el.style.display === 'none';
+  el.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '✕ ביטול' : '✏️ שנה שם';
+  if(open) document.getElementById('f-name-override').value = O.name;
+}
+
 function toggleAddressEdit() {
   const el = document.getElementById('s1-address-edit');
   const btn = document.getElementById('s1-edit-btn');
@@ -1038,6 +1077,8 @@ function toggleAddressEdit() {
 }
 
 function step1Confirm() {
+  const nameOverride = document.getElementById('f-name-override')?.value.trim();
+  if(nameOverride) O.name = nameOverride;
   const override = document.getElementById('f-address-override')?.value.trim();
   if(override) O.address = override;
   goTo(2);
