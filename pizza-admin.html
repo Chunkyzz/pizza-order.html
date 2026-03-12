@@ -203,6 +203,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .slots-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
 .slot-item{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:7px 3px;text-align:center;cursor:pointer;transition:all 0.15s;}
 .slot-item:hover{border-color:var(--orange);}
+.slot-item.pending-slot{background:rgba(245,197,24,0.35)!important;border:2px dashed var(--orange2)!important;}
 .slot-item.blocked{background:rgba(255,68,85,0.07);border-color:rgba(255,68,85,0.35);}
 .slot-time{font-size:0.76rem;font-weight:600;}
 .slot-item.blocked .slot-time{color:var(--red);}
@@ -449,6 +450,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
             <div class="sch-card-head"><div class="sch-card-title">⏰ חסימת שעות</div><div class="sch-card-sub">לחץ לחסום / לפתוח</div></div>
             <div class="sch-body">
               <div class="slots-grid" id="slots-grid"><div class="loading">⏳</div></div>
+              <button id="slot-confirm-btn" onclick="confirmSlotChanges()" style="display:none;width:100%;margin-top:10px;padding:11px;background:var(--orange);border:none;border-radius:10px;color:white;font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:800;cursor:pointer;">✅ אשר שינויים</button>
               <div class="max-ctrl">
                 <span class="max-ctrl-label">מקסימום לשעה:</span>
                 <input type="number" class="max-input" id="max-input" value="3" min="1" max="20"/>
@@ -1129,7 +1131,9 @@ function renderSlots() {
   slots.forEach(t=>{
     const isB=bTimes.includes(t); const cnt=slotCount[t]||0;
     const div=document.createElement('div');
-    div.className='slot-item'+(isB?' blocked':'');
+    const isPending = pendingSlots.has(t);
+    const willBlock = isPending ? !isB : isB; // what it will be after confirm
+    div.className='slot-item'+(isB?' blocked':'')+(isPending?' pending-slot':'');
     div.innerHTML='<div class="slot-time">'+t+'</div><span class="slot-count-badge">'+(isB?'🔴':(cnt>0?cnt+'✓':''))+'</span>';
     div.addEventListener('click',()=>toggleSlot(t));
     grid.appendChild(div);
@@ -1138,6 +1142,7 @@ function renderSlots() {
 
 const selectedDays = new Set();
 let selectedViewDay = null;
+const pendingSlots = new Set(); // slots toggled but not yet saved
 
 function toggleDaySelect(label) {
   if(selectedDays.has(label)) selectedDays.delete(label);
@@ -1307,13 +1312,47 @@ async function applyToSelected(action) {
     renderSchedule();
   } catch(err){st.style.color='var(--red)';st.textContent='❌ שגיאה: '+err.message;}
 }
-async function toggleSlot(time){
+function toggleSlot(time){
+  if(pendingSlots.has(time)) pendingSlots.delete(time);
+  else pendingSlots.add(time);
+  renderSlots();
+  updateSlotConfirmBtn();
+}
+
+function updateSlotConfirmBtn(){
+  const btn = document.getElementById('slot-confirm-btn');
+  if(!btn) return;
+  if(pendingSlots.size > 0){
+    btn.style.display='block';
+    btn.textContent='✅ אשר שינויים ('+pendingSlots.size+' שעות)';
+  } else {
+    btn.style.display='none';
+  }
+}
+
+async function confirmSlotChanges(){
+  const btn = document.getElementById('slot-confirm-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ שומר...';}
   try{
-    const ex=blockedSlots.find(s=>s.time===time);
-    if(ex){await sbDelete(`/rest/v1/blocked_slots?time=eq.${encodeURIComponent(time)}`);blockedSlots=blockedSlots.filter(s=>s.time!==time);toast('⏰ נפתח');}
-    else{await sbPost('/rest/v1/blocked_slots',{time,max_orders:globalMax});blockedSlots.push({time,max_orders:globalMax});toast('🔴 נחסם');}
+    for(const time of pendingSlots){
+      const ex=blockedSlots.find(s=>s.time===time);
+      if(ex){
+        await sbDelete(`/rest/v1/blocked_slots?time=eq.${encodeURIComponent(time)}`);
+        blockedSlots=blockedSlots.filter(s=>s.time!==time);
+      } else {
+        await sbPost('/rest/v1/blocked_slots',{time,max_orders:globalMax});
+        blockedSlots.push({time,max_orders:globalMax});
+      }
+    }
+    pendingSlots.clear();
+    toast('✅ שינויים נשמרו');
+    renderSlots();
+    updateSlotConfirmBtn();
     renderSchedule();
-  }catch(e){toast('❌ '+e.message);}
+  }catch(e){
+    toast('❌ '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='✅ אשר שינויים ('+pendingSlots.size+' שעות)';}
+  }
 }
 async function saveGlobalMax(){
   const val=parseInt(document.getElementById('max-input').value)||3;globalMax=val;
