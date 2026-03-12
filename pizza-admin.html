@@ -244,7 +244,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div class="topbar">
     <div class="topbar-inner">
       <div class="topbar-logo">🍕 ניהול</div>
-      <button id="kitchen-mode-btn" onclick="toggleKitchenMode()" style="padding:5px 10px;border-radius:20px;border:1.5px solid rgba(255,107,26,0.4);background:rgba(255,107,26,0.1);color:#ff6b1a;font-family:'Heebo',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 FIRE חובה</button>
       <div class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('orders',this)">📋 היום</button>
         <button class="tab-btn" onclick="switchTab('history',this)">📊 היסטוריה</button>
@@ -255,6 +254,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <span id="new-badge" class="new-badge" style="display:none">0</span>
         <button class="tb-btn" id="btn-toggle-open" onclick="toggleRestaurant()" style="font-weight:900;">⏳</button>
         <button class="tb-btn refresh" onclick="refresh()">🔄</button>
+        <button id="kitchen-mode-btn" onclick="toggleKitchenMode()" style="padding:4px 9px;border-radius:20px;border:1.5px solid rgba(255,107,26,0.4);background:rgba(255,107,26,0.1);color:#ff6b1a;font-family:'Heebo',sans-serif;font-size:0.7rem;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 FIRE</button>
         <button class="tb-btn logout" onclick="logout()">יציאה</button>
       </div>
     </div>
@@ -721,7 +721,7 @@ function toggleKitchenMode() {
 async function refresh(){
   try{
     const [orders,bDays,bSlots]=await Promise.all([
-      sbGet('/rest/v1/pizza_orders?select=*&order=time.asc'),
+      sbGet('/rest/v1/pizza_orders?select=*&order=time.asc&created_at=gte.'+new Date().toISOString().split('T')[0]+'T00:00:00&created_at=lte.'+new Date().toISOString().split('T')[0]+'T23:59:59'),
       sbGet('/rest/v1/blocked_days?select=date_label'),
       sbGet('/rest/v1/blocked_slots?select=time,max_orders'),
     ]);
@@ -1167,6 +1167,9 @@ async function saveGlobalMax(){
   const val=parseInt(document.getElementById('max-input').value)||3;globalMax=val;
   try{
     if(blockedSlots.length>0){await Promise.all(blockedSlots.map(s=>sbPatch(`/rest/v1/blocked_slots?time=eq.${encodeURIComponent(s.time)}`,{max_orders:val})));blockedSlots=blockedSlots.map(s=>({...s,max_orders:val}));}
+    // Save default max to restaurant_settings
+    const rows=await sbGet('/rest/v1/restaurant_settings?select=id');
+    if(rows&&rows.length>0){await sbPatch('/rest/v1/restaurant_settings?id=eq.'+rows[0].id,{daily_limit:parseInt(document.getElementById('daily-limit-input')?.value)||20,max_orders_default:val});}
     toast('✅ מקסימום: '+val);renderSchedule();
   }catch(e){toast('❌ '+e.message);}
 }
@@ -1208,6 +1211,7 @@ async function loadDailyLimit() {
     if(rows && rows.length>0) {
       const s = rows[0];
       if(s.daily_limit) document.getElementById('daily-limit-input').value = s.daily_limit;
+      if(s.max_orders_default) { globalMax = s.max_orders_default; document.getElementById('max-input').value = s.max_orders_default; }
       if(s.sold_out_msg) document.getElementById('sold-out-msg').value = s.sold_out_msg;
       if(s.wa_number) document.getElementById('wa-number').value = s.wa_number;
     }
@@ -1245,7 +1249,7 @@ async function saveDailyLimit() {
   try {
     const rows = await sbGet('/rest/v1/restaurant_settings?select=id');
     if(rows && rows.length>0) {
-      await sbPatch('/rest/v1/restaurant_settings?id=eq.'+rows[0].id, {daily_limit:limit, sold_out_msg:msg, wa_number:wa});
+      await sbPatch('/rest/v1/restaurant_settings?id=eq.'+rows[0].id, {daily_limit:limit, sold_out_msg:msg, wa_number:wa, max_orders_default:globalMax});
     } else {
       await sbPost('/rest/v1/restaurant_settings', {daily_limit:limit, sold_out_msg:msg, wa_number:wa});
     }
