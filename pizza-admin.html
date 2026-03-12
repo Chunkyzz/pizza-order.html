@@ -624,6 +624,11 @@ let deleteConfirm={};
 async function sbGet(path){const r=await fetch(SB_URL+path,{headers:HDR});if(!r.ok)throw new Error(await r.text());return r.json();}
 async function sbPost(path,body){const r=await fetch(SB_URL+path,{method:'POST',headers:{...HDR,'Prefer':'return=minimal'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());}
 async function sbDelete(path){const r=await fetch(SB_URL+path,{method:'DELETE',headers:HDR});if(!r.ok)throw new Error(await r.text());}
+async function sbUpsert(table,body){
+  const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...HDR,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error(await r.text());
+}
+
 async function sbPatch(path,body){const r=await fetch(SB_URL+path,{method:'PATCH',headers:{...HDR,'Prefer':'return=minimal'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());}
 
 // ══ AUTH ══
@@ -1143,20 +1148,36 @@ async function saveDayLimit() {
   const lim = parseInt(document.getElementById('day-info-limit-input').value);
   if(!lim||lim<1){toast('⚠️ הכנס מספר');return;}
   try {
-    const rows = await sbGet(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(selectedViewDay)}&select=id,date_label`);
-    if(rows&&rows.length>0) {
-      await sbPatch(`/rest/v1/hours_settings?date_label=eq.${encodeURIComponent(selectedViewDay)}`,{daily_limit:lim});
+    const existing = await sbGet('/rest/v1/hours_settings?date_label=eq.'+encodeURIComponent(selectedViewDay)+'&select=id');
+    console.log('[saveDayLimit] existing rows:', existing, 'day:', selectedViewDay, 'lim:', lim);
+    if(existing && existing.length > 0) {
+      const res = await fetch(SB_URL+'/rest/v1/hours_settings?date_label=eq.'+encodeURIComponent(selectedViewDay), {
+        method:'PATCH',
+        headers:{...HDR,'Prefer':'return=representation'},
+        body:JSON.stringify({daily_limit:lim})
+      });
+      const data = await res.json();
+      console.log('[saveDayLimit] PATCH result:', data, 'status:', res.status);
+      if(!res.ok) throw new Error(JSON.stringify(data));
     } else {
-      await sbPost('/rest/v1/hours_settings',{date_label:selectedViewDay,daily_limit:lim});
+      const res = await fetch(SB_URL+'/rest/v1/hours_settings', {
+        method:'POST',
+        headers:{...HDR,'Prefer':'return=representation'},
+        body:JSON.stringify({date_label:selectedViewDay, daily_limit:lim})
+      });
+      const data = await res.json();
+      console.log('[saveDayLimit] POST result:', data, 'status:', res.status);
+      if(!res.ok) throw new Error(JSON.stringify(data));
     }
     if(!window._hourOverrides) window._hourOverrides={};
     if(!window._hourOverrides[selectedViewDay]) window._hourOverrides[selectedViewDay]={date_label:selectedViewDay};
     window._hourOverrides[selectedViewDay].daily_limit = lim;
-    toast('✅ מכסה של '+lim+' כדורים נשמרה ל-'+selectedViewDay);
+    toast('✅ מכסה '+lim+' נשמרה');
     renderSchedule();
     updateDayInfoPanel(selectedViewDay);
   } catch(e) {
-    toast('❌ שגיאה: '+e.message);
+    console.error('[saveDayLimit] ERROR:', e);
+    toast('❌ '+e.message);
   }
 }
 
