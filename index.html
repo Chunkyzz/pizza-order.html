@@ -72,5 +72,48 @@ body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:
 </div>
 
 <div style="margin-top:32px;font-size:0.6rem;color:rgba(0,0,0,0.2);">זמני systems v1.0</div>
+
+  <!-- Links section -->
+  <div style="margin-top:32px;background:var(--surface,#fff);border:1px solid #ddd5c0;border-radius:14px;overflow:hidden;max-width:480px;width:100%;">
+    <div style="padding:14px 18px;background:#f9f5ed;border-bottom:1px solid #ddd5c0;">
+      <div style="font-size:0.72rem;font-weight:700;color:#a09070;text-transform:uppercase;letter-spacing:1px;">🔗 קישורים למערכות</div>
+      <div style="font-size:0.65rem;color:#b09070;margin-top:2px;">לחץ כדי להעתיק</div>
+    </div>
+    <div style="padding:10px 14px;display:flex;flex-direction:column;gap:6px;" id="links-list">
+            <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/pizza-order.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;transition:background 0.15s;gap:10px;">
+        <div>
+          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🍕 הזמנת פיצה — ללקוחות</div>
+          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/pizza-order.html</div>
+        </div>
+        <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
+      </div>
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/pizza-admin.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;transition:background 0.15s;gap:10px;">
+        <div>
+          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">⚙️ ניהול — לבעל העסק</div>
+          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/pizza-admin.html</div>
+        </div>
+        <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
+      </div>
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/kitchen.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;transition:background 0.15s;gap:10px;">
+        <div>
+          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">👨‍🍳 מטבח KDS — לטבח</div>
+          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/kitchen.html</div>
+        </div>
+        <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  function copyLink(url, el) {
+    navigator.clipboard.writeText(url).then(() => {
+      const icon = el.querySelector('.copy-icon');
+      icon.textContent = '✅';
+      el.style.background = 'rgba(34,197,94,0.1)';
+      setTimeout(() => { icon.textContent = '📋'; el.style.background = '#f5f0e8'; }, 1500);
+    });
+  }
+  </script>
+
 </body>
 </html>
