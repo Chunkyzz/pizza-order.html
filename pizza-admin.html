@@ -1210,6 +1210,7 @@ async function loadDailyLimit() {
     const rows = await sbGet('/rest/v1/restaurant_settings?select=*');
     if(rows && rows.length>0) {
       const s = rows[0];
+      _settingsId = s.id;
       if(s.daily_limit) document.getElementById('daily-limit-input').value = s.daily_limit;
       if(s.max_orders_default) { globalMax = s.max_orders_default; document.getElementById('max-input').value = s.max_orders_default; }
       if(s.sold_out_msg) document.getElementById('sold-out-msg').value = s.sold_out_msg;
@@ -1242,16 +1243,24 @@ function updateDailyCount() {
   } catch(e) {}
 }
 
+let _settingsId = null; // cache the one row id
+
 async function saveDailyLimit() {
   const limit = parseInt(document.getElementById('daily-limit-input').value);
   const msg = document.getElementById('sold-out-msg').value.trim();
   const wa = document.getElementById('wa-number').value.trim();
   try {
-    const rows = await sbGet('/rest/v1/restaurant_settings?select=id');
-    if(rows && rows.length>0) {
-      await sbPatch('/rest/v1/restaurant_settings?id=eq.'+rows[0].id, {daily_limit:limit, sold_out_msg:msg, wa_number:wa, max_orders_default:globalMax});
+    if(!_settingsId) {
+      const rows = await sbGet('/rest/v1/restaurant_settings?select=id');
+      if(rows && rows.length>0) _settingsId = rows[0].id;
+    }
+    if(_settingsId) {
+      await sbPatch('/rest/v1/restaurant_settings?id=eq.'+_settingsId, {daily_limit:limit, sold_out_msg:msg, wa_number:wa, max_orders_default:globalMax});
     } else {
-      await sbPost('/rest/v1/restaurant_settings', {daily_limit:limit, sold_out_msg:msg, wa_number:wa});
+      const res = await sbPost('/rest/v1/restaurant_settings', {daily_limit:limit, sold_out_msg:msg, wa_number:wa, max_orders_default:globalMax});
+      // cache new id
+      const rows = await sbGet('/rest/v1/restaurant_settings?select=id');
+      if(rows && rows.length>0) _settingsId = rows[0].id;
     }
     const st = document.getElementById('daily-limit-status');
     st.style.display='block'; setTimeout(()=>st.style.display='none',2000);
