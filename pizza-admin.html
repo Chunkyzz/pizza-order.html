@@ -1124,14 +1124,16 @@ function renderSlots() {
     : [];
   const slotCount={};
   dayOrders.forEach(o=>{slotCount[o.time]=(slotCount[o.time]||0)+1;});
-  document.getElementById('slots-grid').innerHTML = slots.map(t=>{
+  const grid = document.getElementById('slots-grid');
+  grid.innerHTML = '';
+  slots.forEach(t=>{
     const isB=bTimes.includes(t); const cnt=slotCount[t]||0;
     const div=document.createElement('div');
     div.className='slot-item'+(isB?' blocked':'');
     div.innerHTML='<div class="slot-time">'+t+'</div><span class="slot-count-badge">'+(isB?'🔴':(cnt>0?cnt+'✓':''))+'</span>';
     div.addEventListener('click',()=>toggleSlot(t));
-    return div.outerHTML;
-  }).join('');
+    grid.appendChild(div);
+  });
 }
 
 const selectedDays = new Set();
