@@ -1132,11 +1132,12 @@ function loadExistingOrder() {
   setTimeout(() => goTo(4), 80);
 }
 
-function continueNewOrder() {
+async function continueNewOrder() {
   O._existingCandidate = null;
   O.existingId = null;
   document.getElementById('s1-existing').style.display = 'none';
   document.getElementById('s1-returning').style.display = 'block';
+  await showClubPopupIfNeeded();
 }
 
 async function step1Register() {
@@ -1150,6 +1151,7 @@ async function step1Register() {
   } catch(e) {
     // might already exist, continue anyway
   }
+  await showClubPopupIfNeeded();
   goTo(2);
 }
 
@@ -1171,11 +1173,12 @@ function toggleAddressEdit() {
   if(open) document.getElementById('f-address-override').value = O.address;
 }
 
-function step1Confirm() {
+async function step1Confirm() {
   const nameOverride = document.getElementById('f-name-override')?.value.trim();
   if(nameOverride) O.name = nameOverride;
   const override = document.getElementById('f-address-override')?.value.trim();
   if(override) O.address = override;
+  await showClubPopupIfNeeded();
   goTo(2);
 }
 
@@ -1192,5 +1195,72 @@ function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel=
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
   <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.9</div>
+<!-- CLUB POPUP -->
+<div id="club-popup" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:24px 24px 0 0;padding:28px 22px 36px;max-width:480px;width:100%;animation:slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);">
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-size:3rem;margin-bottom:6px;">🍕</div>
+      <div style="font-size:1.25rem;font-weight:900;color:#2d2a24;">מועדון החברים של פיצה זמני</div>
+      <div style="font-size:0.82rem;color:#8a8070;margin-top:6px;line-height:1.5;">הטבות מיוחדות, ספיישלים בלעדיים<br>ו<strong>פיצה 10 חינם</strong> לחברי המועדון 🎉</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button onclick="joinClub('member')" style="background:linear-gradient(135deg,#e8706a,#f5c518);border:none;border-radius:14px;padding:15px;font-family:'Heebo',sans-serif;font-size:1rem;font-weight:900;color:white;cursor:pointer;">
+        🌟 הצטרף למועדון החברים
+        <div style="font-size:0.7rem;font-weight:500;opacity:0.9;margin-top:2px;">הטבות + עדכונים על ימי מכירה</div>
+      </button>
+      <button onclick="joinClub('updates')" style="background:#f5f0e8;border:1.5px solid #ddd5c0;border-radius:14px;padding:13px;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;color:#2d2a24;cursor:pointer;">
+        📢 רק עדכונים על ימי מכירה
+      </button>
+      <button onclick="joinClub('none')" style="background:transparent;border:none;padding:8px;font-family:'Heebo',sans-serif;font-size:0.8rem;color:#8a8070;cursor:pointer;">
+        לא תודה
+      </button>
+    </div>
+    <div style="font-size:0.6rem;color:#b09070;text-align:center;margin-top:12px;line-height:1.4;">
+      בלחיצה על הצטרף אתה מאשר קבלת הודעות שיווקיות מפיצה זמני.<br>ניתן לבטל בכל עת.
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+
+<script>
+async function showClubPopupIfNeeded() {
+  if(!O.customerId) return;
+  try {
+    const rows = await sbGet('/rest/v1/customers?id=eq.'+O.customerId+'&select=marketing_consent,marketing_declined_date');
+    if(!rows || !rows.length) return;
+    const c = rows[0];
+    // Already a member or subscribed to updates - never ask again
+    if(c.marketing_consent === 'member' || c.marketing_consent === 'updates') return;
+    // Declined - only ask again on a different day
+    if(c.marketing_consent === 'none') {
+      const today = new Date().toISOString().split('T')[0];
+      if(c.marketing_declined_date === today) return; // already said no today
+    }
+    document.getElementById('club-popup').style.display = 'flex';
+  } catch(e) {}
+}
+
+async function joinClub(choice) {
+  document.getElementById('club-popup').style.display = 'none';
+  if(!O.customerId) return;
+  const today = new Date().toISOString().split('T')[0];
+  const payload = choice === 'member'
+    ? {marketing_consent: 'member', marketing_declined_date: null}
+    : choice === 'updates'
+    ? {marketing_consent: 'updates', marketing_declined_date: null}
+    : {marketing_consent: 'none', marketing_declined_date: today};
+  try {
+    await fetch(SB_URL+'/rest/v1/customers?id=eq.'+O.customerId, {
+      method: 'PATCH',
+      headers: {...HDR, 'Prefer': 'return=minimal'},
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {}
+}
+</script>
+
 </body>
 </html>

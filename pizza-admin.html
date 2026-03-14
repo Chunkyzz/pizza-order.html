@@ -784,6 +784,7 @@ function switchTab(tab,btn){
   document.getElementById('view-'+tab).classList.add('show');
   if(tab==='schedule') renderSchedule();
   if(tab==='coupons') loadCoupons();
+  if(tab==='members') loadMembers();
   if(tab==='history') { const t=new Date().toISOString().split('T')[0]; document.getElementById('h-date').value=t; loadHistory(); }
 }
 
@@ -1776,6 +1777,84 @@ async function showCouponUses(code) {
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 
+async function loadMembers() {
+  const filter = document.getElementById('members-filter')?.value || 'all';
+  const list = document.getElementById('members-list');
+  if(!list) return;
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">⏳ טוען...</div>';
+  try {
+    const all = await sbGet('/rest/v1/customers?select=*&order=created_at.desc');
+    const members = all.filter(c => c.marketing_consent === 'member');
+    const updates = all.filter(c => c.marketing_consent === 'updates');
+    const none = all.filter(c => c.marketing_consent === 'none');
+
+    document.getElementById('m-count-member').textContent = members.length;
+    document.getElementById('m-count-updates').textContent = updates.length;
+    document.getElementById('m-count-none').textContent = none.length;
+
+    let rows = all;
+    if(filter === 'member') rows = members;
+    if(filter === 'updates') rows = [...members, ...updates];
+
+    if(!rows.length) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">אין רשומות</div>';
+      return;
+    }
+
+    const consentLabel = {member:'🌟 מועדון', updates:'📢 עדכונים', none:'❌ לא', null:'—', undefined:'—'};
+    const consentColor = {member:'var(--yellow)', updates:'var(--blue)', none:'var(--muted)'};
+
+    list.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 100px 80px 90px;padding:8px 14px;background:var(--surface2);font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">
+        <div>שם + טלפון</div><div>הזמנות</div><div>סטטוס</div><div></div>
+      </div>
+      ${rows.map(c => `
+      <div style="display:grid;grid-template-columns:1fr 100px 80px 90px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:0.82rem;">
+        <div>
+          <div style="font-weight:700;">${c.name||'—'}</div>
+          <div style="font-size:0.68rem;color:var(--muted);direction:ltr;text-align:right;">${c.phone||''}</div>
+        </div>
+        <div style="font-weight:700;color:var(--orange);">${c.orders_count||0}</div>
+        <div style="font-weight:700;color:${consentColor[c.marketing_consent]||'var(--muted)'};">${consentLabel[c.marketing_consent]||'—'}</div>
+        <div style="display:flex;gap:4px;">
+          <a href="https://wa.me/${(c.phone||'').replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank" style="background:rgba(37,211,102,0.1);border:none;border-radius:6px;padding:4px 8px;font-size:0.7rem;font-weight:700;color:#25d366;text-decoration:none;cursor:pointer;">💬</a>
+        </div>
+      </div>`).join('')}
+    `;
+  } catch(e) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);">שגיאה: '+e.message+'</div>';
+  }
+}
+
+function exportJoni() {
+  const filter = document.getElementById('members-filter')?.value || 'all';
+  sbGet('/rest/v1/customers?select=*&order=created_at.desc').then(all => {
+    let rows = all.filter(c => c.marketing_consent === 'member' || c.marketing_consent === 'updates');
+    if(filter === 'member') rows = all.filter(c => c.marketing_consent === 'member');
+
+    // Build CSV in Joni format: Phone, First Name, Last Name (Joni reads these columns)
+    const lines = ['Phone,First Name,Last Name,Orders,Status'];
+    rows.forEach(c => {
+      const nameParts = (c.name||'').split(' ');
+      const first = nameParts[0] || '';
+      const last = nameParts.slice(1).join(' ') || '';
+      const phone = (c.phone||'').replace(/[^0-9]/g,'').replace(/^0/,'972');
+      const status = c.marketing_consent === 'member' ? 'מועדון' : 'עדכונים';
+      lines.push(`${phone},"${first}","${last}",${c.orders_count||0},${status}`);
+    });
+
+    const csv = lines.join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pizza-zmani-members-joni.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('✅ הורד קובץ ל-'+rows.length+' אנשי קשר');
+  }).catch(e => toast('❌ שגיאה: '+e.message));
+}
+
 if(sessionStorage.getItem(SESSION_KEY)) refresh();
 setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refresh();},10000);
 </script>
@@ -1792,6 +1871,40 @@ setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refre
     <button class="btn btn-ghost" onclick="document.getElementById('closed-overlay').style.display='none'">ביטול</button>
   </div>
 </div>
+<!-- MEMBERS VIEW -->
+<div class="view" id="view-members">
+  <div class="main">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:1rem;font-weight:900;">👥 מועדון חברים</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <select id="members-filter" onchange="loadMembers()" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);font-family:'Heebo',sans-serif;font-size:0.8rem;background:var(--surface);">
+          <option value="all">כולם</option>
+          <option value="member">🌟 מועדון בלבד</option>
+          <option value="updates">📢 עדכונים בלבד</option>
+        </select>
+        <button onclick="exportJoni()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:8px;padding:7px 14px;font-family:'Heebo',sans-serif;font-size:0.8rem;font-weight:700;color:white;cursor:pointer;">📥 ייצוא לג'וני (Excel)</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:1.5rem;font-weight:900;color:#f5c518;" id="m-count-member">—</div>
+        <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">🌟 חברי מועדון</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--blue);" id="m-count-updates">—</div>
+        <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">📢 רק עדכונים</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--muted);" id="m-count-none">—</div>
+        <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">❌ לא רוצים</div>
+      </div>
+    </div>
+    <div id="members-list" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div style="padding:20px;text-align:center;color:var(--muted);">⏳ טוען...</div>
+    </div>
+  </div>
+</div>
+
 <!-- new order fullscreen banner -->
 <div id="new-order-banner">
   <div class="banner-emoji">🍕</div>
