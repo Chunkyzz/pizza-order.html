@@ -828,7 +828,7 @@ function toggleKitchenMode() {
 async function refresh(){
   try{
     const [orders,bDays,bSlots,hSettings]=await Promise.all([
-      sbGet('/rest/v1/pizza_orders?select=*&order=time.asc&created_at=gte.'+new Date().toISOString().split('T')[0]+'T00:00:00&created_at=lte.'+new Date().toISOString().split('T')[0]+'T23:59:59'),
+      sbGet('/rest/v1/pizza_orders?select=*&order=time.asc&date_label=eq.'+encodeURIComponent(getTodayLabel())),
       sbGet('/rest/v1/blocked_days?select=date_label'),
       sbGet('/rest/v1/blocked_slots?select=time,max_orders'),
       sbGet('/rest/v1/hours_settings?select=*'),
