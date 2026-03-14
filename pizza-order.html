@@ -569,13 +569,12 @@ async function renderDays() {
     const isBlocked = blockedDays.includes(d.label);
     const isSelected = O.dateLabel === d.label;
     const isPast = d.date < today;
-    const isSat = d.dayOfWeek === 6;
+    const isUnavailable = isBlocked || isPast;
     let cls = 'day-card';
     if(isBlocked) cls += ' full';
     if(isSelected) cls += ' selected';
     if(isPast) cls += ' past';
-    if(isSat) cls += ' sat';
-    const click = (isBlocked||isPast||isSat) ? '' : `onclick="selDayByLabel('${d.label.replace(/'/g,"\'")}',new Date(${d.date.getTime()}))"`;
+    const click = isUnavailable ? '' : `onclick="selDayByLabel('${d.label.replace(/'/g,"\'")}',new Date(${d.date.getTime()}))"`;
     html += `<div class="${cls}" ${click}>
       ${isBlocked?'<div class="full-tag" style="font-size:0.45rem">מלא</div>':''}
       <div class="day-num" style="font-size:1rem">${d.num}</div>
