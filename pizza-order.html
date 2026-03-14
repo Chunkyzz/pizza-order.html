@@ -286,6 +286,22 @@ input::placeholder{color:#3a3830;}
     </div>
 
     <div id="s1-loading" style="display:none;text-align:center;padding:30px;color:var(--muted)">⏳ בודק...</div>
+
+    <!-- existing order prompt -->
+    <div id="s1-existing" style="display:none">
+      <div class="card" style="border:2px solid var(--orange);background:rgba(255,107,43,0.04)">
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-size:1.6rem;margin-bottom:6px">🍕</div>
+          <div style="font-weight:800;font-size:1rem">יש לך הזמנה קיימת!</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:6px" id="s1-existing-details"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <button class="btn btn-primary" onclick="loadExistingOrder()">✏️ עדכן הזמנה קיימת</button>
+          <button class="btn btn-ghost" onclick="continueNewOrder()">➕ הזמנה חדשה בנפרד</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="margin-top:8px" onclick="backToPhone()">← שנה מספר</button>
+    </div>
   </div>
 </div>
 
@@ -978,26 +994,39 @@ async function finalConfirm(method) {
     pizzasData[p.id]={qty:getQty(p.id),toppings:O.pizzas[p.id].toppings};
   });
   try {
-    await sbPost('/rest/v1/pizza_orders',{
-      id,name:O.name,phone:O.phone,address:O.address,
-      date_label:O.dateLabel,time:O.time,pizza_lines:pizzaLines,
-      pizzas:pizzasData,total:totPrice(),pay_method:method,
-      status:'new',coupon_used:O.couponApplied?(O.couponCode||null):null,
-      notes:O.notes||null
-    });
-    if(O.couponApplied) {
-      await sbPost('/rest/v1/coupon_uses',{phone:O.phone,coupon_code:O.couponCode,discount_amount:O.couponDiscount});
-    }
-    // Update orders_count
-    if(O.customerId) {
-      await fetch(`${SB_URL}/rest/v1/customers?id=eq.${O.customerId}`,{
+    if(O.existingId) {
+      // Update existing order
+      await fetch(`${SB_URL}/rest/v1/pizza_orders?id=eq.${encodeURIComponent(O.existingId)}`,{
         method:'PATCH',
         headers:{...HDR,'Prefer':'return=minimal'},
-        body:JSON.stringify({orders_count: (await sbGet(`/rest/v1/customers?id=eq.${O.customerId}&select=orders_count`))[0]?.orders_count+1||1})
+        body:JSON.stringify({
+          pizza_lines:pizzaLines,pizzas:pizzasData,total:totPrice(),
+          pay_method:method,notes:O.notes||null,status:'new',
+          coupon_used:O.couponApplied?(O.couponCode||null):null
+        })
       });
+    } else {
+      await sbPost('/rest/v1/pizza_orders',{
+        id,name:O.name,phone:O.phone,address:O.address,
+        date_label:O.dateLabel,time:O.time,pizza_lines:pizzaLines,
+        pizzas:pizzasData,total:totPrice(),pay_method:method,
+        status:'new',coupon_used:O.couponApplied?(O.couponCode||null):null,
+        notes:O.notes||null
+      });
+      if(O.couponApplied) {
+        await sbPost('/rest/v1/coupon_uses',{phone:O.phone,coupon_code:O.couponCode,discount_amount:O.couponDiscount});
+      }
+      if(O.customerId) {
+        await fetch(`${SB_URL}/rest/v1/customers?id=eq.${O.customerId}`,{
+          method:'PATCH',
+          headers:{...HDR,'Prefer':'return=minimal'},
+          body:JSON.stringify({orders_count: (await sbGet(`/rest/v1/customers?id=eq.${O.customerId}&select=orders_count`))[0]?.orders_count+1||1})
+        });
+      }
     }
+    const displayId = O.existingId || id;
     showStatus('success','✅ ההזמנה נרשמה!');
-    setTimeout(()=>showSuccess({id,method}),700);
+    setTimeout(()=>showSuccess({id:displayId,method}),700);
   } catch(e) {
     showStatus('error','❌ שגיאה — נסה שוב');
     if(btn){btn.disabled=false;btn.textContent=method==='cash'?'✅ אישור הזמנה':'✅ שילמתי — אישור הזמנה';}
@@ -1045,23 +1074,69 @@ async function step1Phone() {
     const rows = await sbGet(`/rest/v1/customers?phone=eq.${encodeURIComponent(phone)}&select=*`);
     document.getElementById('s1-loading').style.display = 'none';
     if(rows && rows.length > 0) {
-      // Returning customer
       const c = rows[0];
       O.name = c.name; O.address = c.address; O.customerId = c.id;
       document.getElementById('s1-welcome').textContent = 'שלום ' + c.name + '!';
       document.getElementById('s1-ret-name').textContent = c.name;
       document.getElementById('s1-ret-phone').textContent = phone;
       document.getElementById('s1-ret-address').textContent = c.address;
-      document.getElementById('s1-returning').style.display = 'block';
     } else {
-      // New customer
+      // New customer — no existing order possible, show register
       document.getElementById('s1-register').style.display = 'block';
+      return;
+    }
+    // Check for existing active order
+    const existing = await sbGet(`/rest/v1/pizza_orders?phone=eq.${encodeURIComponent(phone)}&order=created_at.desc&limit=1&select=*`);
+    if(existing && existing.length > 0) {
+      const ex = existing[0];
+      O._existingCandidate = ex;
+      const dateStr = ex.date_label || '';
+      const timeStr = ex.time || '';
+      const pizzaStr = ex.pizza_lines || '';
+      document.getElementById('s1-existing-details').innerHTML =
+        `<strong>${dateStr} בשעה ${timeStr}</strong><br>${pizzaStr}`;
+      document.getElementById('s1-existing').style.display = 'block';
+    } else {
+      document.getElementById('s1-returning').style.display = 'block';
     }
   } catch(e) {
     document.getElementById('s1-loading').style.display = 'none';
     document.getElementById('s1-phone').style.display = 'block';
     toast('❌ שגיאה — נסה שוב');
   }
+}
+
+function loadExistingOrder() {
+  const ex = O._existingCandidate;
+  if(!ex) return;
+  // Load existing order data into O
+  O.existingId = ex.id;
+  O.date = ex.date_label ? new Date(ex.date_label.split('/').reverse().join('-')) : null;
+  O.dateLabel = ex.date_label || '';
+  O.time = ex.time || '';
+  // Load pizzas
+  O.pizzas = {};
+  if(ex.pizzas) {
+    Object.entries(ex.pizzas).forEach(([pid, v]) => {
+      const qty = typeof v === 'object' ? (v.qty || 0) : v;
+      const toppings = typeof v === 'object' ? (v.toppings || []) : [];
+      O.pizzas[pid] = { qty, toppings };
+    });
+  }
+  O.notes = ex.notes || '';
+  O._existingCandidate = null;
+  document.getElementById('s1-existing').style.display = 'none';
+  // Show the returning panel briefly then jump to pizzas
+  document.getElementById('s1-returning').style.display = 'block';
+  // go directly to pizza selection
+  setTimeout(() => goTo(4), 80);
+}
+
+function continueNewOrder() {
+  O._existingCandidate = null;
+  O.existingId = null;
+  document.getElementById('s1-existing').style.display = 'none';
+  document.getElementById('s1-returning').style.display = 'block';
 }
 
 async function step1Register() {
@@ -1108,11 +1183,12 @@ function backToPhone() {
   document.getElementById('s1-register').style.display = 'none';
   document.getElementById('s1-returning').style.display = 'none';
   document.getElementById('s1-loading').style.display = 'none';
+  document.getElementById('s1-existing').style.display = 'none';
   document.getElementById('s1-phone').style.display = 'block';
 }
 
 function step1() { step1Phone(); }
-function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.notes='';O.couponApplied=false;O.couponDiscount=0;O.couponCode=null;O.couponType=null;O.customerId=null;const nt=document.getElementById('order-notes');if(nt)nt.value='';document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
+function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.notes='';O.couponApplied=false;O.couponDiscount=0;O.couponCode=null;O.couponType=null;O.customerId=null;O.existingId=null;O._existingCandidate=null;const nt=document.getElementById('order-notes');if(nt)nt.value='';document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
   <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.9</div>
