@@ -220,14 +220,59 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .toast.show{transform:translateX(-50%) translateY(0);}
 
 @media(max-width:760px){
-  .t-head,.t-row{grid-template-columns:1fr 1fr 70px 1fr;}
+  /* topbar */
+  .topbar-inner{height:auto;flex-wrap:wrap;padding:8px 0;gap:6px;}
+  .topbar-logo{font-size:0.85rem;}
+  .tab-nav{order:3;width:100%;justify-content:stretch;}
+  .tab-btn{flex:1;font-size:0.68rem;padding:5px 4px;text-align:center;}
+  .topbar-right{gap:4px;}
+  .tb-btn{font-size:0.65rem;padding:4px 7px;}
+  /* stats */
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .stat-n{font-size:1.4rem;}
+  /* table */
+  .t-head,.t-row{grid-template-columns:1.4fr 1fr 70px 1fr;}
   .t-head>*:nth-child(1),.t-head>*:nth-child(5),.t-head>*:nth-child(6),
   .t-row>*:nth-child(1),.t-row>*:nth-child(5),.t-row>*:nth-child(6){display:none;}
+  .row-name{font-size:0.85rem;}
+  .row-phone{font-size:0.72rem;color:var(--blue) !important;font-weight:700;}
   .row-pizzas{display:block !important;font-size:0.72rem;color:var(--text);font-weight:600;}
+  .detail-addr{font-size:0.78rem;}
   .cal-grid{grid-template-columns:repeat(3,1fr);}
   .slots-grid{grid-template-columns:repeat(3,1fr);}
   .history-controls{flex-direction:column;align-items:stretch;}
 }
+
+/* new order banner - fullscreen */
+#new-order-banner{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#e8706a,#f5c518);
+  flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:32px 24px;
+  animation:bannerIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes bannerIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+#new-order-banner.show{display:flex;}
+.banner-emoji{font-size:5rem;margin-bottom:12px;animation:bounce 0.6s infinite alternate;}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+.banner-title{font-size:2rem;font-weight:900;color:white;text-shadow:0 2px 8px rgba(0,0,0,0.2);margin-bottom:8px;}
+.banner-sub{font-size:1rem;color:rgba(255,255,255,0.85);margin-bottom:28px;line-height:1.5;}
+.banner-dismiss{background:white;color:var(--orange);border:none;border-radius:14px;padding:14px 36px;font-family:'Heebo',sans-serif;font-size:1.1rem;font-weight:900;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.15);}
+.banner-dismiss:active{transform:scale(0.96);}
+
+/* dough strip */
+.dough-strip{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
+  padding:10px 14px;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+.dough-label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+.dough-nums{display:flex;align-items:center;gap:10px;}
+.dough-val{font-size:1.4rem;font-weight:900;}
+.dough-val.ok{color:var(--green);}
+.dough-val.warn{color:var(--yellow);}
+.dough-val.danger{color:var(--red);}
+.dough-sep{color:var(--muted);font-size:0.9rem;}
 </style>
 </head>
 <body>
@@ -271,6 +316,28 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div class="stat"><div class="stat-n" id="s-pizzas-ordered">—</div><div class="stat-l">🍕 פיצות שהוזמנו</div></div>
         <div class="stat"><div class="stat-n" id="s-pizzas-delivered">—</div><div class="stat-l">✅ פיצות שנמסרו</div></div>
         <div class="stat"><div class="stat-n" id="s-rev">—</div><div class="stat-l">₪ הכנסות</div></div>
+      </div>
+      <!-- dough strip -->
+      <div class="dough-strip" id="dough-strip">
+        <div>
+          <div class="dough-label">🍞 ספירת בצק היום</div>
+        </div>
+        <div class="dough-nums">
+          <div>
+            <div class="dough-val ok" id="dough-used">—</div>
+            <div style="font-size:0.6rem;color:var(--muted);text-align:center;">הוזמנו</div>
+          </div>
+          <div class="dough-sep">/</div>
+          <div>
+            <div class="dough-val" id="dough-limit" style="color:var(--muted);">—</div>
+            <div style="font-size:0.6rem;color:var(--muted);text-align:center;">מכסה</div>
+          </div>
+          <div class="dough-sep">·</div>
+          <div>
+            <div class="dough-val" id="dough-left">—</div>
+            <div style="font-size:0.6rem;color:var(--muted);text-align:center;">נותר</div>
+          </div>
+        </div>
       </div>
       <div class="filter-bar">
         <span class="fl">סינון:</span>
@@ -619,6 +686,7 @@ const S_ACTIONS = {
 };
 
 let todayOrders=[], allOrders=[], blockedDays=[], blockedSlots=[], globalMax=3, curFilter='all', curTab='orders';
+let _knownOrderIds=null;
 let deleteConfirm={};
 
 // ══ SUPABASE ══
@@ -774,6 +842,18 @@ async function refresh(){
         try { await sbPatch('/rest/v1/pizza_orders?id=eq.'+encodeURIComponent(o.id), {status:'preparing'}); o.status='preparing'; } catch(e){}
       }
     }
+    // detect new orders
+    const newIds = new Set(orders.map(o=>o.id));
+    if(_knownOrderIds !== null) {
+      const newOrders = orders.filter(o=>!_knownOrderIds.has(o.id));
+      if(newOrders.length > 0) {
+        showNewOrderBanner(newOrders);
+        playDing();
+        if(navigator.vibrate) navigator.vibrate([200,100,200,100,400]);
+      }
+    }
+    _knownOrderIds = newIds;
+
     allOrders=orders;
     todayOrders=orders;
     blockedDays=bDays.map(r=>r.date_label);
@@ -783,6 +863,41 @@ async function refresh(){
     renderOrders(curFilter);
     if(curTab==='schedule') renderSchedule();
   }catch(e){toast('❌ שגיאת טעינה: '+e.message);}
+}
+
+function showNewOrderBanner(newOrders) {
+  const count = newOrders.length;
+  const title = document.getElementById('banner-title');
+  const sub = document.getElementById('banner-sub');
+  title.textContent = count === 1 ? '🍕 הזמנה חדשה!' : '🍕 ' + count + ' הזמנות חדשות!';
+  if(count === 1) {
+    const o = newOrders[0];
+    sub.textContent = (o.name||'') + ' · ' + (o.time||'') + (o.pizza_lines ? ' · ' + o.pizza_lines : '');
+  } else {
+    sub.textContent = newOrders.map(o=>(o.name||'') + ' ' + (o.time||'')).join(' | ');
+  }
+  document.getElementById('new-order-banner').classList.add('show');
+}
+
+function dismissBanner() {
+  document.getElementById('new-order-banner').classList.remove('show');
+}
+
+function playDing() {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    [0,0.25,0.5].forEach((delay,i)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.frequency.value=[880,1100,1320][i];
+      osc.type='sine';
+      gain.gain.setValueAtTime(0.5,ctx.currentTime+delay);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+0.45);
+      osc.start(ctx.currentTime+delay);
+      osc.stop(ctx.currentTime+delay+0.45);
+    });
+  } catch(e){}
 }
 
 // ══ ORDERS ══
@@ -811,6 +926,9 @@ function updateStats(orders){
   // הכנסות מהזמנות delivered בלבד
   document.getElementById('s-rev').textContent='₪'+deliveredToday.reduce((a,o)=>a+(o.total||0),0);
 
+  // dough strip
+  updateDoughStrip(todayO);
+
   // badge ממתינות (נשאר לצורך ה-badge בטאב)
   const pend=orders.filter(o=>o.status==='pending_payment'||o.status==='new').length;
   const nb=document.getElementById('new-badge');
@@ -819,6 +937,26 @@ function updateStats(orders){
   const sts=['pending_payment','new','payment_confirmed','preparing','out_for_delivery','delivered','cancelled'];
   document.getElementById('cnt-all').textContent=orders.length;
   sts.forEach(s=>{const el=document.getElementById('cnt-'+s);if(el)el.textContent=orders.filter(o=>o.status===s).length;});
+}
+
+function updateDoughStrip(todayOrders) {
+  const limit = parseInt(document.getElementById('daily-limit-input')?.value)||20;
+  const used = countPizzas(todayOrders);
+  const left = Math.max(0, limit - used);
+  const pct = used / limit;
+
+  const elUsed = document.getElementById('dough-used');
+  const elLimit = document.getElementById('dough-limit');
+  const elLeft = document.getElementById('dough-left');
+  if(!elUsed) return;
+
+  elUsed.textContent = used;
+  elLimit.textContent = limit;
+  elLeft.textContent = left;
+
+  // color coding
+  elUsed.className = 'dough-val ' + (pct >= 1 ? 'danger' : pct >= 0.8 ? 'warn' : 'ok');
+  elLeft.className = 'dough-val ' + (left === 0 ? 'danger' : left <= 3 ? 'warn' : 'ok');
 }
 
 function setFilter(f,el){curFilter=f;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderOrders(f);}
@@ -1639,7 +1777,7 @@ async function showCouponUses(code) {
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 
 if(sessionStorage.getItem(SESSION_KEY)) refresh();
-setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refresh();},30000);
+setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refresh();},10000);
 </script>
 
 <!-- Restaurant closed modal -->
@@ -1654,5 +1792,13 @@ setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refre
     <button class="btn btn-ghost" onclick="document.getElementById('closed-overlay').style.display='none'">ביטול</button>
   </div>
 </div>
+<!-- new order fullscreen banner -->
+<div id="new-order-banner">
+  <div class="banner-emoji">🍕</div>
+  <div class="banner-title" id="banner-title">הזמנה חדשה!</div>
+  <div class="banner-sub" id="banner-sub"></div>
+  <button class="banner-dismiss" onclick="dismissBanner()">✓ ראיתי</button>
+</div>
+
 </body>
 </html>
