@@ -267,11 +267,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div class="view show" id="view-orders">
     <div class="main">
       <div class="stats">
-        <div class="stat"><div class="stat-n" id="s-total">—</div><div class="stat-l">היום</div></div>
-        <div class="stat"><div class="stat-n" id="s-pending">—</div><div class="stat-l">ממתינות</div></div>
-        <div class="stat"><div class="stat-n" id="s-active">—</div><div class="stat-l">בתהליך</div></div>
-        <div class="stat"><div class="stat-n" id="s-done">—</div><div class="stat-l">נמסרו</div></div>
-        <div class="stat"><div class="stat-n" id="s-rev">—</div><div class="stat-l">הכנסות</div></div>
+        <div class="stat"><div class="stat-n" id="s-total">—</div><div class="stat-l">הזמנות היום</div></div>
+        <div class="stat"><div class="stat-n" id="s-pizzas-ordered">—</div><div class="stat-l">🍕 פיצות שהוזמנו</div></div>
+        <div class="stat"><div class="stat-n" id="s-pizzas-delivered">—</div><div class="stat-l">✅ פיצות שנמסרו</div></div>
+        <div class="stat"><div class="stat-n" id="s-rev">—</div><div class="stat-l">₪ הכנסות</div></div>
       </div>
       <div class="filter-bar">
         <span class="fl">סינון:</span>
@@ -787,17 +786,36 @@ async function refresh(){
 }
 
 // ══ ORDERS ══
+function countPizzas(orderList){
+  let total=0;
+  orderList.forEach(o=>{
+    if(o.pizzas) Object.values(o.pizzas).forEach(v=>{ total+=typeof v==='object'?(v.qty||0):v; });
+  });
+  return total;
+}
+
 function updateStats(orders){
   const todayL=getTodayLabel();
   const todayO=orders.filter(o=>o.date_label===todayL);
+  const deliveredToday=todayO.filter(o=>o.status==='delivered');
+
+  // הזמנות היום
   document.getElementById('s-total').textContent=todayO.length;
+
+  // פיצות שהוזמנו היום (כל הסטטוסים)
+  document.getElementById('s-pizzas-ordered').textContent=countPizzas(todayO);
+
+  // פיצות שנמסרו היום (delivered בלבד)
+  document.getElementById('s-pizzas-delivered').textContent=countPizzas(deliveredToday);
+
+  // הכנסות מהזמנות delivered בלבד
+  document.getElementById('s-rev').textContent='₪'+deliveredToday.reduce((a,o)=>a+(o.total||0),0);
+
+  // badge ממתינות (נשאר לצורך ה-badge בטאב)
   const pend=orders.filter(o=>o.status==='pending_payment'||o.status==='new').length;
-  document.getElementById('s-pending').textContent=pend;
   const nb=document.getElementById('new-badge');
   if(pend>0){nb.style.display='inline';nb.textContent=pend;}else nb.style.display='none';
-  document.getElementById('s-active').textContent=orders.filter(o=>['payment_confirmed','preparing','out_for_delivery'].includes(o.status)).length;
-  document.getElementById('s-done').textContent=todayO.filter(o=>o.status==='delivered').length;
-  document.getElementById('s-rev').textContent='₪'+todayO.filter(o=>o.status==='delivered').reduce((a,o)=>a+(o.total||0),0);
+
   const sts=['pending_payment','new','payment_confirmed','preparing','out_for_delivery','delivered','cancelled'];
   document.getElementById('cnt-all').textContent=orders.length;
   sts.forEach(s=>{const el=document.getElementById('cnt-'+s);if(el)el.textContent=orders.filter(o=>o.status===s).length;});
