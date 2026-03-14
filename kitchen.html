@@ -62,7 +62,6 @@ body::before{
   border:2px solid var(--border);
   border-radius:16px;
   overflow:hidden;
-  animation:slideIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
   position:relative;
 }
 @keyframes slideIn{from{opacity:0;transform:scale(0.85) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
@@ -309,7 +308,31 @@ function renderAll() {
     return;
   }
   empty.style.display='none';
-  grid.innerHTML = keys.map(id => renderTicket(orders[id])).join('');
+
+  // smart render: update existing tickets in-place, add new ones with animation
+  const existingIds = new Set([...grid.querySelectorAll('.ticket')].map(el => el.dataset.orderId));
+
+  // remove tickets no longer in orders
+  grid.querySelectorAll('.ticket').forEach(el => {
+    if(!orders[el.dataset.orderId]) el.remove();
+  });
+
+  // update or add each ticket
+  keys.forEach(id => {
+    const html = renderTicket(orders[id]);
+    const existing = grid.querySelector('[data-order-id="'+id+'"]');
+    if(existing) {
+      // update in-place without animation
+      existing.outerHTML = html;
+    } else {
+      // new ticket — append with animation
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      const newEl = tmp.firstElementChild;
+      newEl.style.animation = 'slideIn 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+      grid.appendChild(newEl);
+    }
+  });
 }
 
 function renderTicket(o) {
@@ -339,7 +362,7 @@ function renderTicket(o) {
 
   const timeStr = o.created_at ? new Date(o.created_at).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : '';
 
-  return `<div class="ticket${allDone?' all-done-anim':''}" id="ticket-${o.id}">
+  return `<div class="ticket${allDone?' all-done-anim':''}" id="ticket-${o.id}" data-order-id="${o.id}">
     <div class="ticket-header">
       <div style="flex:1;">
         <div class="ticket-id">${o.id}</div>

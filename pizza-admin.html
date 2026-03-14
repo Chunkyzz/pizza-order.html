@@ -74,7 +74,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .t-head{display:grid;grid-template-columns:60px 1.1fr 1fr 80px 68px 68px 1fr;padding:9px 13px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);gap:7px;}
 .t-row{display:grid;grid-template-columns:60px 1.1fr 1fr 80px 68px 68px 1fr;padding:11px 13px;border-bottom:1px solid var(--border);align-items:start;transition:background 0.1s;cursor:pointer;gap:7px;animation:fu 0.2s ease;}
-@keyframes fu{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fu{from{opacity:1;transform:none}to{opacity:1;transform:none}}
 .t-row:last-child{border-bottom:none;}
 .t-row:hover{background:rgba(255,255,255,0.01);}
 .t-row.urgent{background:rgba(255,107,43,0.02);}
@@ -302,7 +302,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <span id="new-badge" class="new-badge" style="display:none">0</span>
         <button class="tb-btn" id="btn-toggle-open" onclick="toggleRestaurant()" style="font-weight:900;">⏳</button>
         <button class="tb-btn refresh" onclick="refresh()">🔄</button>
+        <!-- FIRE button disabled until kitchen system is integrated
         <button id="kitchen-mode-btn" onclick="toggleKitchenMode()" style="padding:4px 9px;border-radius:20px;border:1.5px solid rgba(255,107,26,0.4);background:rgba(255,107,26,0.1);color:#ff6b1a;font-family:'Heebo',sans-serif;font-size:0.7rem;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 FIRE</button>
+        -->
         <button class="tb-btn logout" onclick="logout()">יציאה</button>
       </div>
     </div>
@@ -835,12 +837,10 @@ async function refresh(){
     hSettings.filter(r=>r.date_label!=='default').forEach(r=>{ window._hourOverrides[r.date_label]=r; });
     const def = hSettings.find(r=>r.date_label==='default');
     if(def) { const ds=document.getElementById('def-start'); const de=document.getElementById('def-end'); if(ds)ds.value=def.start_hour; if(de)de.value=def.end_hour; }
-    // Auto-fire in auto mode
-    if(kitchenAutoMode) {
-      const toFire = orders.filter(o => o.status==='new' || o.status==='payment_confirmed');
-      for(const o of toFire) {
-        try { await sbPatch('/rest/v1/pizza_orders?id=eq.'+encodeURIComponent(o.id), {status:'preparing'}); o.status='preparing'; } catch(e){}
-      }
+    // Auto-fire: every new/confirmed order goes straight to kitchen (no manual approval needed)
+    const toFire = orders.filter(o => o.status==='new' || o.status==='payment_confirmed');
+    for(const o of toFire) {
+      try { await sbPatch('/rest/v1/pizza_orders?id=eq.'+encodeURIComponent(o.id), {status:'preparing'}); o.status='preparing'; } catch(e){}
     }
     // detect new orders
     const newIds = new Set(orders.map(o=>o.id));
