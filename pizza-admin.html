@@ -1828,10 +1828,18 @@ async function loadMembers() {
   }
 }
 
-function exportJoni() {
+function showExportPopup() {
+  document.getElementById('export-popup').style.display = 'flex';
+}
+
+function exportJoni(mode) {
+  document.getElementById('export-popup').style.display = 'none';
   sbGet('/rest/v1/customers?select=*&order=created_at.desc').then(all => {
+    let rows = all;
+    if(mode === 'club') rows = all.filter(c => c.marketing_consent === 'member');
+
     const data = [['Phone', 'First Name', 'Last Name']];
-    all.forEach(c => {
+    rows.forEach(c => {
       const nameParts = (c.name||'').split(' ');
       const first = nameParts[0] || '';
       const last = nameParts.slice(1).join(' ') || '';
@@ -1842,14 +1850,27 @@ function exportJoni() {
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
-    XLSX.writeFile(wb, 'pizza-zmani-customers-joni.xlsx');
-    toast('✅ הורד קובץ ל-'+(data.length-1)+' לקוחות');
+    XLSX.writeFile(wb, 'pizza-zmani-joni.xlsx');
+    toast('✅ הורד קובץ ל-'+(data.length-1)+' אנשי קשר');
   }).catch(e => toast('❌ שגיאה: '+e.message));
 }
 
 if(sessionStorage.getItem(SESSION_KEY)) refresh();
 setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refresh();},10000);
 </script>
+
+<!-- Export popup -->
+<div id="export-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;max-width:320px;width:90%;text-align:center;">
+    <div style="font-size:1.1rem;font-weight:900;margin-bottom:8px;">📥 ייצוא לג'וני</div>
+    <div style="font-size:0.82rem;color:var(--muted);margin-bottom:20px;">מה לייצא?</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button onclick="exportJoni('all')" style="padding:12px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:12px;color:white;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">👥 כל מי שנרשם</button>
+      <button onclick="exportJoni('club')" style="padding:12px;background:linear-gradient(135deg,#e8706a,#f5c518);border:none;border-radius:12px;color:white;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">🌟 חברי מועדון בלבד</button>
+      <button onclick="document.getElementById('export-popup').style.display='none'" style="padding:10px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.85rem;cursor:pointer;">ביטול</button>
+    </div>
+  </div>
+</div>
 
 <!-- Restaurant closed modal -->
 <div id="closed-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center;">
@@ -1874,7 +1895,7 @@ setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refre
           <option value="member">🌟 מועדון בלבד</option>
           <option value="updates">📢 עדכונים בלבד</option>
         </select>
-        <button onclick="exportJoni()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:8px;padding:7px 14px;font-family:'Heebo',sans-serif;font-size:0.8rem;font-weight:700;color:white;cursor:pointer;">📥 ייצוא לג'וני (Excel)</button>
+        <button onclick="showExportPopup()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:8px;padding:7px 14px;font-family:'Heebo',sans-serif;font-size:0.8rem;font-weight:700;color:white;cursor:pointer;">📥 ייצוא לג'וני (Excel)</button>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px;">
