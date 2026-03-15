@@ -687,6 +687,14 @@ const S_ACTIONS = {
   unclear:[{l:'👨‍🍳 הכנה',c:'ab-prepare',s:'preparing'},{l:'✅ אשר',c:'ab-confirm',s:'payment_confirmed'},{l:'❌ בטל',c:'ab-cancel',s:'cancelled'}],
 };
 
+const COUPON_TYPES = {
+  fixed:      { label: '💰 הנחה בשקלים' },
+  percent:    { label: '📊 הנחה באחוזים' },
+  free_item:  { label: '🎁 מוצר חינם מהתפריט' },
+  buy_get:    { label: '🛒 קנה X קבל Y' },
+  first_free: { label: '🍕 פיצה ראשונה חינם' },
+};
+
 let todayOrders=[], allOrders=[], blockedDays=[], blockedSlots=[], globalMax=3, curFilter='all', curTab='orders';
 let _knownOrderIds=null;
 let deleteConfirm={};
