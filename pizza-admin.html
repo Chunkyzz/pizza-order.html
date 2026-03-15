@@ -1840,7 +1840,7 @@ function exportJoni() {
       const nameParts = (c.name||'').split(' ');
       const first = nameParts[0] || '';
       const last = nameParts.slice(1).join(' ') || '';
-      const phone = (c.phone||'').replace(/[^0-9]/g,'').replace(/^0/,'972');
+      const phone = (c.phone||'').replace(/[^0-9]/g,'').replace(/^972/,'0');
       const status = c.marketing_consent === 'member' ? 'מועדון' : 'עדכונים';
       data.push([phone, first, last, c.orders_count||0, status]);
     });
