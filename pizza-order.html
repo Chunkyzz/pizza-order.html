@@ -1146,7 +1146,7 @@ async function step1Register() {
   if(!name || !address) { toast('⚠️ נא למלא את כל השדות'); return; }
   O.name = name; O.address = address;
   try {
-    const res = await sbPost('/rest/v1/customers', {phone:O.phone, name, address});
+    const res = await sbPost('/rest/v1/customers', {phone:O.phone, name, address, marketing_consent: null});
     if(res && res[0]) O.customerId = res[0].id;
   } catch(e) {
     // might already exist, continue anyway
