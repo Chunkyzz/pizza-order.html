@@ -1065,7 +1065,11 @@ function updProg(n){for(let i=1;i<=5;i++){const el=document.getElementById('pi'+
 function goTo(n){
   if(n===5) setTimeout(refreshNotesSummary, 50);document.getElementById('panel-'+curStep)?.classList.remove('active');document.getElementById('panel-'+n)?.classList.add('active');updProg(Math.min(n,5));curStep=n;window.scrollTo({top:0,behavior:'smooth'});if(n===2)renderDays();if(n===3)renderTimes();if(n===4)renderPizzas();if(n===5)renderSummary();}
 async function step1Phone() {
-  const phone = document.getElementById('f-phone').value.trim();
+  let phone = document.getElementById('f-phone').value.trim();
+  // נרמול: +972XX → 0XX, 972XX → 0XX
+  phone = phone.replace(/\s+/g,'').replace(/-/g,'');
+  if(phone.startsWith('+972')) phone = '0' + phone.slice(4);
+  else if(phone.startsWith('972')) phone = '0' + phone.slice(3);
   if(!phone || phone.length < 9) { toast('⚠️ נא להזין מספר טלפון תקין'); return; }
   O.phone = phone;
   document.getElementById('s1-phone').style.display = 'none';
