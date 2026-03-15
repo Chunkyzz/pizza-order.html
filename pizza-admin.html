@@ -297,6 +297,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <button class="tab-btn" onclick="switchTab('history',this)">📊 היסטוריה</button>
         <button class="tab-btn" onclick="switchTab('schedule',this)">📅 לוח זמנים</button>
         <button class="tab-btn" onclick="switchTab('coupons',this)">🎟 קופונים</button>
+        <button class="tab-btn" onclick="switchTab('members',this)">👥 לקוחות</button>
       </div>
       <div class="topbar-right">
         <span id="new-badge" class="new-badge" style="display:none">0</span>
@@ -685,14 +686,6 @@ const S_ACTIONS = {
   delivered:[{l:'↩ ביטול',c:'ab-restore',s:'out_for_delivery'}],
   cancelled:[{l:'↩ שחזר',c:'ab-restore',s:'new'}],
   unclear:[{l:'👨‍🍳 הכנה',c:'ab-prepare',s:'preparing'},{l:'✅ אשר',c:'ab-confirm',s:'payment_confirmed'},{l:'❌ בטל',c:'ab-cancel',s:'cancelled'}],
-};
-
-const COUPON_TYPES = {
-  fixed:      { label: '💰 הנחה בשקלים' },
-  percent:    { label: '📊 הנחה באחוזים' },
-  free_item:  { label: '🎁 מוצר חינם מהתפריט' },
-  buy_get:    { label: '🛒 קנה X קבל Y' },
-  first_free: { label: '🍕 פיצה ראשונה חינם' },
 };
 
 let todayOrders=[], allOrders=[], blockedDays=[], blockedSlots=[], globalMax=3, curFilter='all', curTab='orders';
@@ -1912,6 +1905,8 @@ setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refre
     </div>
   </div>
 </div>
+
+</div><!-- end admin-app -->
 
 <!-- new order fullscreen banner -->
 <div id="new-order-banner">
