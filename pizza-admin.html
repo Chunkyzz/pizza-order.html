@@ -1829,29 +1829,21 @@ async function loadMembers() {
 }
 
 function exportJoni() {
-  const filter = document.getElementById('members-filter')?.value || 'all';
   sbGet('/rest/v1/customers?select=*&order=created_at.desc').then(all => {
-    let rows = all.filter(c => c.marketing_consent === 'member' || c.marketing_consent === 'updates');
-    if(filter === 'member') rows = all.filter(c => c.marketing_consent === 'member');
-
-    // Build data in Joni Excel format
-    const data = [['Phone', 'First Name', 'Last Name', 'Orders', 'Status']];
-    rows.forEach(c => {
+    const data = [['Phone', 'First Name', 'Last Name']];
+    all.forEach(c => {
       const nameParts = (c.name||'').split(' ');
       const first = nameParts[0] || '';
       const last = nameParts.slice(1).join(' ') || '';
       const phone = (c.phone||'').replace(/[^0-9]/g,'').replace(/^972/,'0');
-      const status = c.marketing_consent === 'member' ? 'מועדון' : 'עדכונים';
-      data.push([phone, first, last, c.orders_count||0, status]);
+      if(phone) data.push([phone, first, last]);
     });
-
-    // Use SheetJS to create xlsx
     const XLSX = window.XLSX;
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
-    XLSX.writeFile(wb, 'pizza-zmani-members-joni.xlsx');
-    toast('✅ הורד קובץ Excel ל-'+rows.length+' אנשי קשר');
+    XLSX.writeFile(wb, 'pizza-zmani-customers-joni.xlsx');
+    toast('✅ הורד קובץ ל-'+(data.length-1)+' לקוחות');
   }).catch(e => toast('❌ שגיאה: '+e.message));
 }
 
