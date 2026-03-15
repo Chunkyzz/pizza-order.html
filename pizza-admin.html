@@ -274,6 +274,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .dough-val.danger{color:var(--red);}
 .dough-sep{color:var(--muted);font-size:0.9rem;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -1833,26 +1834,24 @@ function exportJoni() {
     let rows = all.filter(c => c.marketing_consent === 'member' || c.marketing_consent === 'updates');
     if(filter === 'member') rows = all.filter(c => c.marketing_consent === 'member');
 
-    // Build CSV in Joni format: Phone, First Name, Last Name (Joni reads these columns)
-    const lines = ['Phone,First Name,Last Name,Orders,Status'];
+    // Build data in Joni Excel format
+    const data = [['Phone', 'First Name', 'Last Name', 'Orders', 'Status']];
     rows.forEach(c => {
       const nameParts = (c.name||'').split(' ');
       const first = nameParts[0] || '';
       const last = nameParts.slice(1).join(' ') || '';
       const phone = (c.phone||'').replace(/[^0-9]/g,'').replace(/^0/,'972');
       const status = c.marketing_consent === 'member' ? 'מועדון' : 'עדכונים';
-      lines.push(`${phone},"${first}","${last}",${c.orders_count||0},${status}`);
+      data.push([phone, first, last, c.orders_count||0, status]);
     });
 
-    const csv = lines.join('\n');
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'pizza-zmani-members-joni.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('✅ הורד קובץ ל-'+rows.length+' אנשי קשר');
+    // Use SheetJS to create xlsx
+    const XLSX = window.XLSX;
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
+    XLSX.writeFile(wb, 'pizza-zmani-members-joni.xlsx');
+    toast('✅ הורד קובץ Excel ל-'+rows.length+' אנשי קשר');
   }).catch(e => toast('❌ שגיאה: '+e.message));
 }
 
