@@ -1835,8 +1835,21 @@ function showExportPopup() {
 function exportJoni(mode) {
   document.getElementById('export-popup').style.display = 'none';
   sbGet('/rest/v1/customers?select=*&order=created_at.desc').then(all => {
-    let rows = all;
-    if(mode === 'club') rows = all.filter(c => c.marketing_consent === 'member');
+    let rows;
+    if(mode === 'all')         rows = all;
+    else if(mode === 'consent') rows = all.filter(c => c.marketing_consent === 'updates' || c.marketing_consent === 'member');
+    else if(mode === 'member')  rows = all.filter(c => c.marketing_consent === 'member');
+    else if(mode === 'vip') {
+      // שולף את כל ההזמנות ומחשב ימים ייחודיים לכל לקוח
+      const allOrders = await sbGet('/rest/v1/pizza_orders?select=phone,date_label&status=neq.cancelled');
+      const daysByPhone = {};
+      allOrders.forEach(o => {
+        if(!o.phone) return;
+        if(!daysByPhone[o.phone]) daysByPhone[o.phone] = new Set();
+        daysByPhone[o.phone].add(o.date_label);
+      });
+      rows = all.filter(c => (daysByPhone[c.phone]?.size || 0) >= 5);
+    }
 
     const data = [['Phone', 'First Name', 'Last Name']];
     rows.forEach(c => {
@@ -1865,8 +1878,10 @@ setInterval(()=>{if(sessionStorage.getItem(SESSION_KEY)&&curTab==='orders')refre
     <div style="font-size:1.1rem;font-weight:900;margin-bottom:8px;">📥 ייצוא לג'וני</div>
     <div style="font-size:0.82rem;color:var(--muted);margin-bottom:20px;">מה לייצא?</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <button onclick="exportJoni('all')" style="padding:12px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:12px;color:white;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">👥 כל מי שנרשם</button>
-      <button onclick="exportJoni('club')" style="padding:12px;background:linear-gradient(135deg,#e8706a,#f5c518);border:none;border-radius:12px;color:white;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">🌟 חברי מועדון בלבד</button>
+      <button onclick="exportJoni('all')" style="padding:12px;background:#f5f0e8;border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">👥 כולם</button>
+      <button onclick="exportJoni('consent')" style="padding:12px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:12px;color:white;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">✅ רק מי שהסכים לעדכונים</button>
+      <button onclick="exportJoni('vip')" style="padding:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);border:none;border-radius:12px;color:white;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">⭐ VIP (5+ הזמנות)</button>
+      <button onclick="exportJoni('member')" style="padding:12px;background:linear-gradient(135deg,#e8706a,#f5c518);border:none;border-radius:12px;color:white;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">🌟 חברי מועדון בלבד</button>
       <button onclick="document.getElementById('export-popup').style.display='none'" style="padding:10px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.85rem;cursor:pointer;">ביטול</button>
     </div>
   </div>
