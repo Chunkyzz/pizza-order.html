@@ -1815,19 +1815,21 @@ async function loadMembers() {
     const consentColor = {member:'var(--yellow)', updates:'var(--blue)', none:'var(--muted)'};
 
     list.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 100px 80px 90px;padding:8px 14px;background:var(--surface2);font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:1fr 100px 80px 140px;padding:8px 14px;background:var(--surface2);font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);">
         <div>שם + טלפון</div><div>הזמנות</div><div>סטטוס</div><div></div>
       </div>
       ${rows.map(c => `
-      <div style="display:grid;grid-template-columns:1fr 100px 80px 90px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:0.82rem;">
+      <div style="display:grid;grid-template-columns:1fr 100px 80px 140px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:0.82rem;">
         <div>
           <div style="font-weight:700;">${c.name||'—'}</div>
           <div style="font-size:0.68rem;color:var(--muted);direction:ltr;text-align:right;">${c.phone||''}</div>
         </div>
         <div style="font-weight:700;color:var(--orange);">${c.orders_count||0}</div>
         <div style="font-weight:700;color:${consentColor[c.marketing_consent]||'var(--muted)'};">${consentLabel[c.marketing_consent]||'—'}</div>
-        <div style="display:flex;gap:4px;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
           <a href="https://wa.me/${(c.phone||'').replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank" style="background:rgba(37,211,102,0.1);border:none;border-radius:6px;padding:4px 8px;font-size:0.7rem;font-weight:700;color:#25d366;text-decoration:none;cursor:pointer;">💬</a>
+          <button onclick="changeConsent('${c.id}','${c.marketing_consent}')" style="background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:4px 8px;font-size:0.7rem;font-weight:700;color:var(--blue);cursor:pointer;">✏️</button>
+          <button onclick="deleteMember('${c.id}','${c.name||'לקוח'}')" style="background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);border-radius:6px;padding:4px 8px;font-size:0.7rem;font-weight:700;color:var(--red);cursor:pointer;">🗑</button>
         </div>
       </div>`).join('')}
     `;
@@ -1838,6 +1840,32 @@ async function loadMembers() {
 
 function showExportPopup() {
   document.getElementById('export-popup').style.display = 'flex';
+}
+
+async function changeConsent(id, current) {
+  const options = {
+    'null': '— ללא סטטוס',
+    'updates': '📢 עדכונים',
+    'member': '🌟 מועדון',
+    'none': '❌ הסר מרשימה'
+  };
+  const choice = prompt(`שנה סטטוס:\n1 = ללא\n2 = עדכונים\n3 = מועדון\n4 = הסר מרשימה\n\nסטטוס נוכחי: ${current||'ללא'}`);
+  const map = {'1':null,'2':'updates','3':'member','4':'none'};
+  if(!choice || !map.hasOwnProperty(choice)) return;
+  try {
+    await sbPatch('/rest/v1/customers?id=eq.'+id, {marketing_consent: map[choice]});
+    toast('✅ סטטוס עודכן');
+    loadMembers();
+  } catch(e) { toast('❌ '+e.message); }
+}
+
+async function deleteMember(id, name) {
+  if(!confirm('למחוק את '+name+' מהרשימה?\nהפעולה לא ניתנת לביטול.')) return;
+  try {
+    await sbDelete('/rest/v1/customers?id=eq.'+id);
+    toast('🗑 '+name+' נמחק');
+    loadMembers();
+  } catch(e) { toast('❌ '+e.message); }
 }
 
 async function exportJoni(mode) {
