@@ -689,6 +689,14 @@ const S_ACTIONS = {
   unclear:[{l:'👨‍🍳 הכנה',c:'ab-prepare',s:'preparing'},{l:'✅ אשר',c:'ab-confirm',s:'payment_confirmed'},{l:'❌ בטל',c:'ab-cancel',s:'cancelled'}],
 };
 
+const COUPON_TYPES = {
+  fixed:      { label: '💰 הנחה בשקלים' },
+  percent:    { label: '📊 הנחה באחוזים' },
+  free_item:  { label: '🎁 מוצר חינם מהתפריט' },
+  buy_get:    { label: '🛒 קנה X קבל Y' },
+  first_free: { label: '🍕 פיצה ראשונה חינם' },
+};
+
 let todayOrders=[], allOrders=[], blockedDays=[], blockedSlots=[], globalMax=3, curFilter='all', curTab='orders';
 let _knownOrderIds=null;
 let deleteConfirm={};
@@ -706,10 +714,17 @@ async function sbPatch(path,body){const r=await fetch(SB_URL+path,{method:'PATCH
 
 // ══ AUTH ══
 function tryLogin(){
-  sessionStorage.setItem(SESSION_KEY,'1');
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('admin-app').classList.add('show');
-  refresh();
+  const v=document.getElementById('pw-input').value;
+  if(v===ADMIN_PASSWORD){
+    sessionStorage.setItem(SESSION_KEY,'1');
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('admin-app').classList.add('show');
+    refresh();
+  } else {
+    const e=document.getElementById('pw-err');e.style.display='block';
+    document.getElementById('pw-input').value='';
+    setTimeout(()=>e.style.display='none',3000);
+  }
 }
 async function loadRestaurantStatus() {
   try {
@@ -1825,18 +1840,18 @@ function showExportPopup() {
   document.getElementById('export-popup').style.display = 'flex';
 }
 
-function exportJoni(mode) {
+async function exportJoni(mode) {
   document.getElementById('export-popup').style.display = 'none';
-  sbGet('/rest/v1/customers?select=*&order=created_at.desc').then(all => {
+  try {
+    const all = await sbGet('/rest/v1/customers?select=*&order=created_at.desc');
     let rows;
-    if(mode === 'all')         rows = all;
+    if(mode === 'all')          rows = all;
     else if(mode === 'consent') rows = all.filter(c => c.marketing_consent === 'updates' || c.marketing_consent === 'member');
     else if(mode === 'member')  rows = all.filter(c => c.marketing_consent === 'member');
     else if(mode === 'vip') {
-      // שולף את כל ההזמנות ומחשב ימים ייחודיים לכל לקוח
-      const allOrders = await sbGet('/rest/v1/pizza_orders?select=phone,date_label&status=neq.cancelled');
+      const allOrd = await sbGet('/rest/v1/pizza_orders?select=phone,date_label&status=neq.cancelled');
       const daysByPhone = {};
-      allOrders.forEach(o => {
+      allOrd.forEach(o => {
         if(!o.phone) return;
         if(!daysByPhone[o.phone]) daysByPhone[o.phone] = new Set();
         daysByPhone[o.phone].add(o.date_label);
@@ -1858,7 +1873,7 @@ function exportJoni(mode) {
     XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
     XLSX.writeFile(wb, 'pizza-zmani-joni.xlsx');
     toast('✅ הורד קובץ ל-'+(data.length-1)+' אנשי קשר');
-  }).catch(e => toast('❌ שגיאה: '+e.message));
+  } catch(e) { toast('❌ שגיאה: '+e.message); }
 }
 
 if(sessionStorage.getItem(SESSION_KEY)) refresh();
