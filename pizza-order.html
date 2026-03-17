@@ -286,22 +286,6 @@ input::placeholder{color:#3a3830;}
     </div>
 
     <div id="s1-loading" style="display:none;text-align:center;padding:30px;color:var(--muted)">⏳ בודק...</div>
-
-    <!-- existing order prompt -->
-    <div id="s1-existing" style="display:none">
-      <div class="card" style="border:2px solid var(--orange);background:rgba(255,107,43,0.04)">
-        <div style="text-align:center;margin-bottom:14px">
-          <div style="font-size:1.6rem;margin-bottom:6px">🍕</div>
-          <div style="font-weight:800;font-size:1rem">יש לך הזמנה קיימת!</div>
-          <div style="font-size:0.78rem;color:var(--muted);margin-top:6px" id="s1-existing-details"></div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-          <button class="btn btn-primary" onclick="loadExistingOrder()">✏️ עדכן הזמנה קיימת</button>
-          <button class="btn btn-ghost" onclick="continueNewOrder()">➕ הזמנה חדשה בנפרד</button>
-        </div>
-      </div>
-      <button class="btn btn-ghost" style="margin-top:8px" onclick="backToPhone()">← שנה מספר</button>
-    </div>
   </div>
 </div>
 
@@ -982,6 +966,63 @@ async function applyCoupon() {
   }
 }
 
+
+const TG_TOKEN = '8730173845:AAHf8AHh0zpN4MMD9WZA_J0jJalmrAWEngU';
+const TG_CHAT  = '6365335044';
+
+async function sendTelegram(order) {
+  try {
+    const pizzaText = Object.entries(order.pizzas||{})
+      .filter(([,v])=>(v.qty||0)>0)
+      .map(([id,v])=>{
+        const names={'margherita':'מרגריטה','pesto':'פסטו','polenta':'פולנטה','beet':'סלק'};
+        const tops = (v.toppings||[]).map(t=>t.join(',')).filter(Boolean).join(' | ');
+        return `• ${names[id]||id} x${v.qty}${tops?' ('+tops+')':''}`;
+      }).join('\n');
+
+    const msg = [
+      '🍕 *הזמנה חדשה!*',
+      '',
+      `👤 ${order.name}`,
+      `📞 ${order.phone}`,
+      `🏠 ${order.address}`,
+      `📅 ${order.dateLabel} · ⏰ ${order.time}`,
+      `💰 ₪${order.total} · ${order.payMethod==='cash'?'💵 מזומן':'📱 אפליקציה'}`,
+      '',
+      pizzaText,
+      order.notes ? `\n💬 ${order.notes}` : '',
+      '',
+      `🆔 ${order.id}`
+    ].filter(l=>l!==null).join('\n');
+
+    // Send message
+    const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        chat_id: TG_CHAT,
+        text: msg,
+        parse_mode: 'Markdown'
+      })
+    });
+    const data = await res.json();
+    if(data.ok) {
+      // Pin the message
+      await fetch(`https://api.telegram.org/bot${TG_TOKEN}/pinChatMessage`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          chat_id: TG_CHAT,
+          message_id: data.result.message_id,
+          disable_notification: false
+        })
+      });
+    }
+  } catch(e) {
+    console.warn('Telegram error:', e);
+  }
+}
+
 async function finalConfirm(method) {
   const btnId = method==='cash'?'btn-cash-confirm':'btn-app-confirm';
   const btn = document.getElementById(btnId);
@@ -994,39 +1035,27 @@ async function finalConfirm(method) {
     pizzasData[p.id]={qty:getQty(p.id),toppings:O.pizzas[p.id].toppings};
   });
   try {
-    if(O.existingId) {
-      // Update existing order
-      await fetch(`${SB_URL}/rest/v1/pizza_orders?id=eq.${encodeURIComponent(O.existingId)}`,{
+    await sbPost('/rest/v1/pizza_orders',{
+      id,name:O.name,phone:O.phone,address:O.address,
+      date_label:O.dateLabel,time:O.time,pizza_lines:pizzaLines,
+      pizzas:pizzasData,total:totPrice(),pay_method:method,
+      status:'new',coupon_used:O.couponApplied?(O.couponCode||null):null,
+      notes:O.notes||null
+    });
+    if(O.couponApplied) {
+      await sbPost('/rest/v1/coupon_uses',{phone:O.phone,coupon_code:O.couponCode,discount_amount:O.couponDiscount});
+    }
+    // Update orders_count
+    if(O.customerId) {
+      await fetch(`${SB_URL}/rest/v1/customers?id=eq.${O.customerId}`,{
         method:'PATCH',
         headers:{...HDR,'Prefer':'return=minimal'},
-        body:JSON.stringify({
-          pizza_lines:pizzaLines,pizzas:pizzasData,total:totPrice(),
-          pay_method:method,notes:O.notes||null,status:'new',
-          coupon_used:O.couponApplied?(O.couponCode||null):null
-        })
+        body:JSON.stringify({orders_count: (await sbGet(`/rest/v1/customers?id=eq.${O.customerId}&select=orders_count`))[0]?.orders_count+1||1})
       });
-    } else {
-      await sbPost('/rest/v1/pizza_orders',{
-        id,name:O.name,phone:O.phone,address:O.address,
-        date_label:O.dateLabel,time:O.time,pizza_lines:pizzaLines,
-        pizzas:pizzasData,total:totPrice(),pay_method:method,
-        status:'new',coupon_used:O.couponApplied?(O.couponCode||null):null,
-        notes:O.notes||null
-      });
-      if(O.couponApplied) {
-        await sbPost('/rest/v1/coupon_uses',{phone:O.phone,coupon_code:O.couponCode,discount_amount:O.couponDiscount});
-      }
-      if(O.customerId) {
-        await fetch(`${SB_URL}/rest/v1/customers?id=eq.${O.customerId}`,{
-          method:'PATCH',
-          headers:{...HDR,'Prefer':'return=minimal'},
-          body:JSON.stringify({orders_count: (await sbGet(`/rest/v1/customers?id=eq.${O.customerId}&select=orders_count`))[0]?.orders_count+1||1})
-        });
-      }
     }
-    const displayId = O.existingId || id;
     showStatus('success','✅ ההזמנה נרשמה!');
-    setTimeout(()=>showSuccess({id:displayId,method}),700);
+    sendTelegram({...O, id, total:totPrice(), pizzas:pizzasData});
+    setTimeout(()=>showSuccess({id,method}),700);
   } catch(e) {
     showStatus('error','❌ שגיאה — נסה שוב');
     if(btn){btn.disabled=false;btn.textContent=method==='cash'?'✅ אישור הזמנה':'✅ שילמתי — אישור הזמנה';}
@@ -1065,11 +1094,7 @@ function updProg(n){for(let i=1;i<=5;i++){const el=document.getElementById('pi'+
 function goTo(n){
   if(n===5) setTimeout(refreshNotesSummary, 50);document.getElementById('panel-'+curStep)?.classList.remove('active');document.getElementById('panel-'+n)?.classList.add('active');updProg(Math.min(n,5));curStep=n;window.scrollTo({top:0,behavior:'smooth'});if(n===2)renderDays();if(n===3)renderTimes();if(n===4)renderPizzas();if(n===5)renderSummary();}
 async function step1Phone() {
-  let phone = document.getElementById('f-phone').value.trim();
-  // נרמול: +972XX → 0XX, 972XX → 0XX
-  phone = phone.replace(/\s+/g,'').replace(/-/g,'');
-  if(phone.startsWith('+972')) phone = '0' + phone.slice(4);
-  else if(phone.startsWith('972')) phone = '0' + phone.slice(3);
+  const phone = document.getElementById('f-phone').value.trim();
   if(!phone || phone.length < 9) { toast('⚠️ נא להזין מספר טלפון תקין'); return; }
   O.phone = phone;
   document.getElementById('s1-phone').style.display = 'none';
@@ -1078,30 +1103,17 @@ async function step1Phone() {
     const rows = await sbGet(`/rest/v1/customers?phone=eq.${encodeURIComponent(phone)}&select=*`);
     document.getElementById('s1-loading').style.display = 'none';
     if(rows && rows.length > 0) {
+      // Returning customer
       const c = rows[0];
       O.name = c.name; O.address = c.address; O.customerId = c.id;
       document.getElementById('s1-welcome').textContent = 'שלום ' + c.name + '!';
       document.getElementById('s1-ret-name').textContent = c.name;
       document.getElementById('s1-ret-phone').textContent = phone;
       document.getElementById('s1-ret-address').textContent = c.address;
-    } else {
-      // New customer — no existing order possible, show register
-      document.getElementById('s1-register').style.display = 'block';
-      return;
-    }
-    // Check for existing active order
-    const existing = await sbGet(`/rest/v1/pizza_orders?phone=eq.${encodeURIComponent(phone)}&order=created_at.desc&limit=1&select=*`);
-    if(existing && existing.length > 0) {
-      const ex = existing[0];
-      O._existingCandidate = ex;
-      const dateStr = ex.date_label || '';
-      const timeStr = ex.time || '';
-      const pizzaStr = ex.pizza_lines || '';
-      document.getElementById('s1-existing-details').innerHTML =
-        `<strong>${dateStr} בשעה ${timeStr}</strong><br>${pizzaStr}`;
-      document.getElementById('s1-existing').style.display = 'block';
-    } else {
       document.getElementById('s1-returning').style.display = 'block';
+    } else {
+      // New customer
+      document.getElementById('s1-register').style.display = 'block';
     }
   } catch(e) {
     document.getElementById('s1-loading').style.display = 'none';
@@ -1110,52 +1122,17 @@ async function step1Phone() {
   }
 }
 
-function loadExistingOrder() {
-  const ex = O._existingCandidate;
-  if(!ex) return;
-  // Load existing order data into O
-  O.existingId = ex.id;
-  O.date = ex.date_label ? new Date(ex.date_label.split('/').reverse().join('-')) : null;
-  O.dateLabel = ex.date_label || '';
-  O.time = ex.time || '';
-  // Load pizzas
-  O.pizzas = {};
-  if(ex.pizzas) {
-    Object.entries(ex.pizzas).forEach(([pid, v]) => {
-      const qty = typeof v === 'object' ? (v.qty || 0) : v;
-      const toppings = typeof v === 'object' ? (v.toppings || []) : [];
-      O.pizzas[pid] = { qty, toppings };
-    });
-  }
-  O.notes = ex.notes || '';
-  O._existingCandidate = null;
-  document.getElementById('s1-existing').style.display = 'none';
-  // Show the returning panel briefly then jump to pizzas
-  document.getElementById('s1-returning').style.display = 'block';
-  // go directly to pizza selection
-  setTimeout(() => goTo(4), 80);
-}
-
-async function continueNewOrder() {
-  O._existingCandidate = null;
-  O.existingId = null;
-  document.getElementById('s1-existing').style.display = 'none';
-  document.getElementById('s1-returning').style.display = 'block';
-  await showClubPopupIfNeeded();
-}
-
 async function step1Register() {
   const name = document.getElementById('f-name').value.trim();
   const address = document.getElementById('f-address').value.trim();
   if(!name || !address) { toast('⚠️ נא למלא את כל השדות'); return; }
   O.name = name; O.address = address;
   try {
-    const res = await sbPost('/rest/v1/customers', {phone:O.phone, name, address, marketing_consent: null});
+    const res = await sbPost('/rest/v1/customers', {phone:O.phone, name, address});
     if(res && res[0]) O.customerId = res[0].id;
   } catch(e) {
     // might already exist, continue anyway
   }
-  await showClubPopupIfNeeded();
   goTo(2);
 }
 
@@ -1177,12 +1154,11 @@ function toggleAddressEdit() {
   if(open) document.getElementById('f-address-override').value = O.address;
 }
 
-async function step1Confirm() {
+function step1Confirm() {
   const nameOverride = document.getElementById('f-name-override')?.value.trim();
   if(nameOverride) O.name = nameOverride;
   const override = document.getElementById('f-address-override')?.value.trim();
   if(override) O.address = override;
-  await showClubPopupIfNeeded();
   goTo(2);
 }
 
@@ -1190,81 +1166,13 @@ function backToPhone() {
   document.getElementById('s1-register').style.display = 'none';
   document.getElementById('s1-returning').style.display = 'none';
   document.getElementById('s1-loading').style.display = 'none';
-  document.getElementById('s1-existing').style.display = 'none';
   document.getElementById('s1-phone').style.display = 'block';
 }
 
 function step1() { step1Phone(); }
-function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.notes='';O.couponApplied=false;O.couponDiscount=0;O.couponCode=null;O.couponType=null;O.customerId=null;O.existingId=null;O._existingCandidate=null;const nt=document.getElementById('order-notes');if(nt)nt.value='';document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
+function resetOrder(){O.name='';O.phone='';O.address='';O.date=null;O.dateLabel='';O.time='';O.pizzas={};O.payMethod='';O.notes='';O.couponApplied=false;O.couponDiscount=0;O.couponCode=null;O.couponType=null;O.customerId=null;const nt=document.getElementById('order-notes');if(nt)nt.value='';document.getElementById('f-phone').value='';backToPhone();['f-name','f-phone','f-address'].forEach(id=>document.getElementById(id).value='');document.getElementById('cart-strip').classList.remove('show');goTo(1);}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 </script>
   <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.55rem;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;letter-spacing:0.5px;">v1.9</div>
-<!-- CLUB POPUP -->
-<div id="club-popup" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;">
-  <div style="background:#fff;border-radius:24px 24px 0 0;padding:28px 22px 36px;max-width:480px;width:100%;animation:slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);">
-    <div style="text-align:center;margin-bottom:18px;">
-      <div style="font-size:3rem;margin-bottom:6px;">🍕</div>
-      <div style="font-size:1.25rem;font-weight:900;color:#2d2a24;">מועדון החברים של פיצה זמני</div>
-      <div style="font-size:0.82rem;color:#8a8070;margin-top:6px;line-height:1.5;">הטבות מיוחדות, ספיישלים בלעדיים<br>ו<strong>פיצה 10 חינם</strong> לחברי המועדון 🎉</div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <button onclick="joinClub('member')" style="background:linear-gradient(135deg,#e8706a,#f5c518);border:none;border-radius:14px;padding:15px;font-family:'Heebo',sans-serif;font-size:1rem;font-weight:900;color:white;cursor:pointer;">
-        🌟 הצטרף למועדון החברים
-        <div style="font-size:0.7rem;font-weight:500;opacity:0.9;margin-top:2px;">הטבות + עדכונים על ימי מכירה</div>
-      </button>
-      <button onclick="joinClub('updates')" style="background:#f5f0e8;border:1.5px solid #ddd5c0;border-radius:14px;padding:13px;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;color:#2d2a24;cursor:pointer;">
-        📢 רק עדכונים על ימי מכירה
-      </button>
-      <button onclick="joinClub('none')" style="background:transparent;border:none;padding:8px;font-family:'Heebo',sans-serif;font-size:0.8rem;color:#8a8070;cursor:pointer;">
-        לא תודה
-      </button>
-    </div>
-    <div style="font-size:0.6rem;color:#b09070;text-align:center;margin-top:12px;line-height:1.4;">
-      בלחיצה על הצטרף אתה מאשר קבלת הודעות שיווקיות מפיצה זמני.<br>ניתן לבטל בכל עת.
-    </div>
-  </div>
-</div>
-
-<style>
-@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
-</style>
-
-<script>
-async function showClubPopupIfNeeded() {
-  if(!O.customerId) return;
-  try {
-    const rows = await sbGet('/rest/v1/customers?id=eq.'+O.customerId+'&select=marketing_consent,marketing_declined_date');
-    if(!rows || !rows.length) return;
-    const c = rows[0];
-    // Already a member or subscribed to updates - never ask again
-    if(c.marketing_consent === 'member' || c.marketing_consent === 'updates') return;
-    // Declined - only ask again on a different day
-    if(c.marketing_consent === 'none') {
-      const today = new Date().toISOString().split('T')[0];
-      if(c.marketing_declined_date === today) return; // already said no today
-    }
-    document.getElementById('club-popup').style.display = 'flex';
-  } catch(e) {}
-}
-
-async function joinClub(choice) {
-  document.getElementById('club-popup').style.display = 'none';
-  if(!O.customerId) return;
-  const today = new Date().toISOString().split('T')[0];
-  const payload = choice === 'member'
-    ? {marketing_consent: 'member', marketing_declined_date: null}
-    : choice === 'updates'
-    ? {marketing_consent: 'updates', marketing_declined_date: null}
-    : {marketing_consent: 'none', marketing_declined_date: today};
-  try {
-    await fetch(SB_URL+'/rest/v1/customers?id=eq.'+O.customerId, {
-      method: 'PATCH',
-      headers: {...HDR, 'Prefer': 'return=minimal'},
-      body: JSON.stringify(payload)
-    });
-  } catch(e) {}
-}
-</script>
-
 </body>
 </html>
