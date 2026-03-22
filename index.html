@@ -29,6 +29,10 @@ body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:
 .card.order .card-title{color:#e8706a;}
 .card.admin .card-title{color:#d97706;}
 .card.kitchen .card-title{color:#16a34a;}
+.card.catering .card-title{color:#7c3aed;}
+.card.catering-admin .card-title{color:#b45309;}
+.card.catering:hover{border-color:#7c3aed;box-shadow:0 4px 16px rgba(124,58,237,0.15);}
+.card.catering-admin:hover{border-color:#b45309;box-shadow:0 4px 16px rgba(180,83,9,0.15);}
 
 .divider{width:100%;max-width:380px;text-align:center;font-size:0.7rem;color:#8a8070;margin:8px 0;}
 </style>
@@ -69,6 +73,26 @@ body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:
     <div class="card-arrow">←</div>
   </a>
 
+  <div class="divider">— קייטרינג —</div>
+
+  <a class="card catering" href="https://chunkyzz.github.io/pizza-zmani/catering-order.html">
+    <div class="card-icon">🍽️</div>
+    <div class="card-text">
+      <div class="card-title">הזמנת קייטרינג</div>
+      <div class="card-desc">ממשק לקוח — בחירת תפריט לאירוע</div>
+    </div>
+    <div class="card-arrow">←</div>
+  </a>
+
+  <a class="card catering-admin" href="https://chunkyzz.github.io/pizza-zmani/catering-admin.html">
+    <div class="card-icon">🗂️</div>
+    <div class="card-text">
+      <div class="card-title">ניהול קייטרינג</div>
+      <div class="card-desc">לקוחות, הזמנות, תפריט</div>
+    </div>
+    <div class="card-arrow">←</div>
+  </a>
+
 </div>
 
 <div style="margin-top:32px;font-size:0.6rem;color:rgba(0,0,0,0.2);">זמני systems v1.0</div>
@@ -80,7 +104,7 @@ body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:
       <div style="font-size:0.65rem;color:#b09070;margin-top:2px;">לחץ כדי להעתיק</div>
     </div>
     <div style="padding:10px 14px;display:flex;flex-direction:column;gap:6px;" id="links-list">
-            <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/pizza-order.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;transition:background 0.15s;gap:10px;">
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/pizza-order.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;transition:background 0.15s;gap:10px;">
         <div>
           <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🍕 הזמנת פיצה — ללקוחות</div>
           <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/pizza-order.html</div>
@@ -101,6 +125,20 @@ body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:
         </div>
         <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
       </div>
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/catering-order.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f0edf8;cursor:pointer;transition:background 0.15s;gap:10px;">
+        <div>
+          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🍽️ הזמנת קייטרינג — ללקוחות</div>
+          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/catering-order.html</div>
+        </div>
+        <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
+      </div>
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/catering-admin.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f0edf8;cursor:pointer;transition:background 0.15s;gap:10px;">
+        <div>
+          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🗂️ ניהול קייטרינג — לבעל העסק</div>
+          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/catering-admin.html</div>
+        </div>
+        <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
+      </div>
     </div>
   </div>
 
@@ -110,7 +148,7 @@ body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:
       const icon = el.querySelector('.copy-icon');
       icon.textContent = '✅';
       el.style.background = 'rgba(34,197,94,0.1)';
-      setTimeout(() => { icon.textContent = '📋'; el.style.background = '#f5f0e8'; }, 1500);
+      setTimeout(() => { icon.textContent = '📋'; el.style.background = el.style.background.includes('f0edf8') ? '#f0edf8' : '#f5f0e8'; }, 1500);
     });
   }
   </script>
