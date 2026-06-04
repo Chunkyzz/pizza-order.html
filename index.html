@@ -12,34 +12,28 @@ body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:
 .logo em{font-style:normal;color:#e8706a;}
 .sub{font-size:0.85rem;color:#8a8070;margin-bottom:32px;text-align:center;}
 .cards{display:flex;flex-direction:column;gap:14px;width:100%;max-width:380px;}
-.card{
-  background:#fff;border:1.5px solid #ddd5c0;border-radius:16px;
-  padding:18px 20px;display:flex;align-items:center;gap:16px;
-  text-decoration:none;color:#2d2a24;
-  transition:all 0.18s;box-shadow:0 2px 8px rgba(0,0,0,0.04);
-}
+.card{background:#fff;border:1.5px solid #ddd5c0;border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:16px;text-decoration:none;color:#2d2a24;transition:all 0.18s;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
 .card:active{transform:scale(0.97);}
 .card:hover{border-color:#e8706a;box-shadow:0 4px 16px rgba(232,112,106,0.15);}
 .card-icon{font-size:2rem;flex-shrink:0;}
-.card-text{}
 .card-title{font-size:1rem;font-weight:900;}
 .card-desc{font-size:0.75rem;color:#8a8070;margin-top:2px;}
 .card-arrow{margin-right:auto;color:#ddd5c0;font-size:1.1rem;}
-
 .card.order .card-title{color:#e8706a;}
 .card.admin .card-title{color:#d97706;}
 .card.kitchen .card-title{color:#16a34a;}
 .card.catering .card-title{color:#7c3aed;}
-.card.catering-admin .card-title{color:#b45309;}
 .card.catering:hover{border-color:#7c3aed;box-shadow:0 4px 16px rgba(124,58,237,0.15);}
+.card.catering-admin .card-title{color:#b45309;}
 .card.catering-admin:hover{border-color:#b45309;box-shadow:0 4px 16px rgba(180,83,9,0.15);}
 .card.amalfi .card-title{color:#0891b2;}
 .card.amalfi:hover{border-color:#0891b2;box-shadow:0 4px 16px rgba(8,145,178,0.15);}
 .card.quote .card-title{color:#1B2A4A;}
 .card.quote:hover{border-color:#C9A84C;box-shadow:0 4px 16px rgba(201,168,76,0.2);}
+.card.quote-mgr .card-title{color:#7c3aed;}
+.card.quote-mgr:hover{border-color:#7c3aed;box-shadow:0 4px 16px rgba(124,58,237,0.2);}
 .card.quote-admin .card-title{color:#2E6B4F;}
 .card.quote-admin:hover{border-color:#2E6B4F;box-shadow:0 4px 16px rgba(46,107,79,0.2);}
-
 .divider{width:100%;max-width:380px;text-align:center;font-size:0.7rem;color:#8a8070;margin:8px 0;}
 </style>
 </head>
@@ -110,6 +104,15 @@ body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:
     <div class="card-arrow">←</div>
   </a>
 
+  <a class="card quote-mgr" href="https://chunkyzz.github.io/pizza-zmani/quotes-manager.html">
+    <div class="card-icon">📋</div>
+    <div class="card-text">
+      <div class="card-title">ניהול הצעות מחיר</div>
+      <div class="card-desc">היסטוריה, עריכה, מחיקה, חומרי גלם</div>
+    </div>
+    <div class="card-arrow">←</div>
+  </a>
+
   <a class="card quote-admin" href="https://chunkyzz.github.io/pizza-zmani/quote-admin.html">
     <div class="card-icon">🍕</div>
     <div class="card-text">
@@ -132,71 +135,69 @@ body{font-family:'Heebo',sans-serif;background:#f5f0e8;color:#2d2a24;min-height:
 
 </div>
 
-<div style="margin-top:32px;font-size:0.6rem;color:rgba(0,0,0,0.2);">זמני systems v1.1</div>
+<div style="margin-top:32px;font-size:0.6rem;color:rgba(0,0,0,0.2);">זמני systems v1.2</div>
 
-  <!-- Links section -->
   <div style="margin-top:32px;background:var(--surface,#fff);border:1px solid #ddd5c0;border-radius:14px;overflow:hidden;max-width:480px;width:100%;">
     <div style="padding:14px 18px;background:#f9f5ed;border-bottom:1px solid #ddd5c0;">
       <div style="font-size:0.72rem;font-weight:700;color:#a09070;text-transform:uppercase;letter-spacing:1px;">🔗 קישורים למערכות</div>
       <div style="font-size:0.65rem;color:#b09070;margin-top:2px;">לחץ כדי להעתיק</div>
     </div>
     <div style="padding:10px 14px;display:flex;flex-direction:column;gap:6px;" id="links-list">
-      <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/pizza-order.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;transition:background 0.15s;gap:10px;">
-        <div>
-          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🍕 הזמנת פיצה — ללקוחות</div>
-          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/pizza-order.html</div>
-        </div>
+
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/pizza-order.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;gap:10px;">
+        <div><div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🍕 הזמנת פיצה — ללקוחות</div>
+        <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/pizza-order.html</div></div>
         <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
       </div>
-      <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/pizza-admin.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;transition:background 0.15s;gap:10px;">
-        <div>
-          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">⚙️ ניהול — לבעל העסק</div>
-          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/pizza-admin.html</div>
-        </div>
+
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/pizza-admin.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;gap:10px;">
+        <div><div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">⚙️ ניהול — לבעל העסק</div>
+        <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/pizza-admin.html</div></div>
         <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
       </div>
-      <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/kitchen.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;transition:background 0.15s;gap:10px;">
-        <div>
-          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">👨‍🍳 מטבח KDS — לטבח</div>
-          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/kitchen.html</div>
-        </div>
+
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-order.html/kitchen.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f5f0e8;cursor:pointer;gap:10px;">
+        <div><div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">👨‍🍳 מטבח KDS — לטבח</div>
+        <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-order.html/kitchen.html</div></div>
         <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
       </div>
-      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/catering-order.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f0edf8;cursor:pointer;transition:background 0.15s;gap:10px;">
-        <div>
-          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🍽️ הזמנת קייטרינג — ללקוחות</div>
-          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/catering-order.html</div>
-        </div>
+
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/catering-order.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f0edf8;cursor:pointer;gap:10px;">
+        <div><div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🍽️ הזמנת קייטרינג — ללקוחות</div>
+        <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/catering-order.html</div></div>
         <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
       </div>
-      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/catering-admin.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f0edf8;cursor:pointer;transition:background 0.15s;gap:10px;">
-        <div>
-          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🗂️ ניהול קייטרינג — לבעל העסק</div>
-          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/catering-admin.html</div>
-        </div>
+
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/catering-admin.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f0edf8;cursor:pointer;gap:10px;">
+        <div><div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🗂️ ניהול קייטרינג — לבעל העסק</div>
+        <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/catering-admin.html</div></div>
         <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
       </div>
-      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/quote-builder.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#fdf8ee;cursor:pointer;transition:background 0.15s;gap:10px;">
-        <div>
-          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">📝 בונה הצעת מחיר</div>
-          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/quote-builder.html</div>
-        </div>
+
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/quote-builder.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#fdf8ee;cursor:pointer;gap:10px;">
+        <div><div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">📝 בונה הצעת מחיר</div>
+        <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/quote-builder.html</div></div>
         <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
       </div>
-      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/quote-admin.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#edf7f2;cursor:pointer;transition:background 0.15s;gap:10px;">
-        <div>
-          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🍕 ניהול תפריט מנות</div>
-          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/quote-admin.html</div>
-        </div>
+
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/quotes-manager.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#f0edf8;cursor:pointer;gap:10px;">
+        <div><div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">📋 ניהול הצעות מחיר</div>
+        <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/quotes-manager.html</div></div>
         <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
       </div>
-      <div onclick="copyLink('https://chunkyzz.github.io/amalfi-orders/', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#e8f7fa;cursor:pointer;transition:background 0.15s;gap:10px;">
-        <div>
-          <div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🥦 הזמנת ירקות — אמלפי</div>
-          <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/amalfi-orders/</div>
-        </div>
+
+      <div onclick="copyLink('https://chunkyzz.github.io/pizza-zmani/quote-admin.html', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#edf7f2;cursor:pointer;gap:10px;">
+        <div><div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🍕 ניהול תפריט מנות</div>
+        <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/pizza-zmani/quote-admin.html</div></div>
         <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
       </div>
+
+      <div onclick="copyLink('https://chunkyzz.github.io/amalfi-orders/', this)" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:9px;background:#e8f7fa;cursor:pointer;gap:10px;">
+        <div><div style="font-size:0.75rem;font-weight:700;color:#2d2a24;">🥦 הזמנת ירקות — אמלפי</div>
+        <div style="font-size:0.65rem;color:#a09070;direction:ltr;text-align:right;">https://chunkyzz.github.io/amalfi-orders/</div></div>
+        <div class="copy-icon" style="font-size:1rem;flex-shrink:0;">📋</div>
+      </div>
+
     </div>
   </div>
 
